@@ -200,7 +200,8 @@ class UserProfile(models.Model):
     )
     role = models.ForeignKey(
         Role,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
         related_name="user_profiles",
         verbose_name=_("Role"),
         help_text=_("User's role in the system")
