@@ -69,12 +69,16 @@ class DashboardView(ActiveUserRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
+        profile = None
+        role_code = None
+        if user.is_superuser:
+            role_code = "SUPER_ADMIN"
         try:
             profile = user.profile
-            role_code = profile.role.role_code if profile.role else None
+            if not user.is_superuser:
+                role_code = profile.role.role_code if profile.role else None
         except UserProfile.DoesNotExist:
-            profile = None
-            role_code = None
+            pass
         context["role_code"] = role_code
         context["profile"] = profile
         context["total_users"] = User.objects.filter(is_active=True).count()

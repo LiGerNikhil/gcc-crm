@@ -27,6 +27,9 @@ class RoleRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         if not self.request.user.is_authenticated:
             return False
+        # Superusers bypass all role checks
+        if self.request.user.is_superuser:
+            return True
         try:
             role_code = self.request.user.profile.role.role_code
             return role_code in self.allowed_roles
