@@ -26,7 +26,9 @@ SECRET_KEY = 'django-insecure-_9#ff(3gao%7s7zb*0wu=in_-hs#qi=58e-f*few!c*_%v&i)=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["crm.growarthcapita.com", "187.127.147.152", "localhost", "127.0.0.1"]
+CSRF_TRUSTED_ORIGINS = ["https://crm.growarthcapita.com", "http://187.127.147.152"]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # Application definition
