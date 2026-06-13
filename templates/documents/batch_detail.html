@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ batch.batch_code }} - Batch Detail{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'documents:batch_list' %}">Upload Batches</a></li>
+<li class="breadcrumb-item active">{{ batch.batch_code }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>{{ batch.batch_code }}</h2>
+        <p class="page-subtitle">{{ batch.bank_source.name|default:"Uncategorized" }} &middot; {{ batch.get_upload_type_display }} &middot; Uploaded {{ batch.upload_date|date:"d M Y H:i" }}</p>
+    </div>
+    <div>
+        {% if batch.upload_type == "PDF" and batch.file_path %}
+        <a href="{% url 'documents:batch_download' batch.id %}" class="btn btn-outline-gold btn-sm me-1"><i class="bi bi-download"></i> PDF</a>
+        {% endif %}
+        <div class="dropdown d-inline-block">
+            <button class="btn btn-gold btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-plus-lg"></i> Upload</button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li><a class="dropdown-item" href="{% url 'documents:pdf_upload' %}"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF</a></li>
+                <li><a class="dropdown-item" href="{% url 'documents:image_upload' %}"><i class="bi bi-file-earmark-image text-primary me-2"></i>Images</a></li>
+                <li><a class="dropdown-item" href="{% url 'documents:excel_upload' %}"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Assign Modal -->
+{% if user.profile.role.role_code in "MANAGER,TEAM_LEAD,SUPER_ADMIN" %}
+<div class="modal fade" id="bulkAssignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'documents:workitem_bulk_assign' %}">
+                {% csrf_token %}
+                <input type="hidden" name="work_items" id="bulkWorkItems">
+                <div class="modal-header">
+                    <h5 class="modal-title">Assign Selected Work Items</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Assign To</label>
+                        <select name="assign_to" class="form-select" required>
+                            <option value="">-- Select User --</option>
+                            {% for u in assignable_users %}
+                            <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }} ({{ u.profile.role.role_name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Reason for assignment..."></textarea>
+                    </div>
+                    <p class="text-muted small mb-0">Selected: <span id="bulkCount">0</span> work item(s)</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-gold">Assign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h3 class="mb-1 fw-bold" style="color:var(--crm-gold);">{{ batch.total_records }}</h3>
+                <span class="text-muted small">Total Pages / Records</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h3 class="mb-1 fw-bold text-warning">{{ total_pending }}</h3>
+                <span class="text-muted small">Pending</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h3 class="mb-1 fw-bold text-info">{{ total_in_progress }}</h3>
+                <span class="text-muted small">In Progress</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h3 class="mb-1 fw-bold text-success">{{ total_completed }}</h3>
+                <span class="text-muted small">Completed</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Batch Info Card -->
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-info-circle me-2"></i> Batch Information</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="text-muted small d-block">Batch Code</label>
+                <span class="fw-medium">{{ batch.batch_code }}</span>
+            </div>
+            <div class="col-md-3">
+                <label class="text-muted small d-block">Source Name</label>
+                <span>{{ batch.bank_source.name|default:"—" }}</span>
+            </div>
+            <div class="col-md-2">
+                <label class="text-muted small d-block">Upload Type</label>
+                <span class="badge bg-secondary">{{ batch.get_upload_type_display }}</span>
+            </div>
+            <div class="col-md-2">
+                <label class="text-muted small d-block">Status</label>
+                {% if batch.status == "COMPLETED" %}
+                <span class="badge-status completed">Completed</span>
+                {% elif batch.status == "FAILED" %}
+                <span class="badge-status failed">Failed</span>
+                {% elif batch.status == "PROCESSING" %}
+                <span class="badge-status processing">Processing</span>
+                {% else %}
+                <span class="badge-status pending">{{ batch.get_status_display }}</span>
+                {% endif %}
+            </div>
+            <div class="col-md-2">
+                <label class="text-muted small d-block">Uploaded By</label>
+                <span>{{ batch.uploaded_by.get_full_name|default:batch.uploaded_by.username }}</span>
+            </div>
+        </div>
+        {% if batch.notes %}
+        <div class="row mt-3">
+            <div class="col-12">
+                <label class="text-muted small d-block">Notes</label>
+                <p class="mb-0">{{ batch.notes|linebreaksbr }}</p>
+            </div>
+        </div>
+        {% endif %}
+        {% if batch.error_log %}
+        <div class="row mt-3">
+            <div class="col-12">
+                <label class="text-muted small d-block text-danger">Error Log</label>
+                <pre class="text-danger small mb-0">{{ batch.error_log }}</pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Work Items Grid -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="bi bi-list-check me-2"></i> Work Items ({{ work_items|length }})</span>
+        {% if user.profile.role.role_code in "MANAGER,TEAM_LEAD,SUPER_ADMIN" and work_items %}
+        <div class="d-flex align-items-center gap-2">
+            <div class="form-check mb-0">
+                <input type="checkbox" class="form-check-input" id="selectAll">
+                <label class="form-check-label small" for="selectAll">Select All</label>
+            </div>
+            <span class="text-muted small" id="selectedCount">0 selected</span>
+            <button class="btn btn-gold btn-sm" id="bulkAssignBtn" data-bs-toggle="modal" data-bs-target="#bulkAssignModal" disabled>
+                <i class="bi bi-send"></i> Assign Selected
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if batch.status == "FAILED" %}
+        <div class="alert alert-danger">This batch failed to process.</div>
+        {% elif batch.status == "PROCESSING" %}
+        <div class="alert alert-info">This batch is still processing. Refresh to see work items.</div>
+        {% elif batch.status == "PENDING" or batch.status == "DRAFT" %}
+        <div class="alert alert-secondary">This batch has not been processed yet.</div>
+        {% endif %}
+
+        {% if work_items %}
+        <div class="row g-3">
+            {% for wi in work_items %}
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                <div class="position-relative">
+                    {% if user.profile.role.role_code in "MANAGER,TEAM_LEAD,SUPER_ADMIN" %}
+                    <div class="position-absolute top-0 start-0 p-1" style="z-index:2;">
+                        <input type="checkbox" class="form-check-input work-item-checkbox" value="{{ wi.id }}">
+                    </div>
+                    {% endif %}
+                    <a href="{% url 'documents:workitem_detail' wi.id %}" class="text-decoration-none">
+                        <div class="card work-item-card h-100 {% if wi.status == 'COMPLETED' %}border-success{% elif wi.status == 'IN_PROGRESS' %}border-info{% elif wi.status == 'REVERTED' %}border-warning{% elif wi.status == 'FAILED' %}border-danger{% endif %}">
+                            {% if wi.image_thumbnail %}
+                            <div class="work-item-thumb" style="background-image:url('{% url 'documents:image_preview' wi.id %}?variant=thumb');"></div>
+                            {% elif wi.page_thumbnail %}
+                            <div class="work-item-thumb" style="background-image:url('{% url 'documents:page_preview' wi.id %}?thumb=1');"></div>
+                            {% else %}
+                            <div class="work-item-thumb d-flex align-items-center justify-content-center bg-dark">
+                                <i class="bi {% if wi.batch.upload_type == 'IMAGE' %}bi-file-earmark-image{% else %}bi-file-earmark-text{% endif %}" style="font-size:2rem;color:var(--crm-gold);"></i>
+                            </div>
+                            {% endif %}
+                            <div class="card-body p-2 text-center">
+                                <small class="fw-medium d-block">{{ wi.item_identifier|default:"Page" }}</small>
+                                <span class="badge {% if wi.status == 'PENDING' %}bg-secondary{% elif wi.status == 'ASSIGNED' %}bg-primary{% elif wi.status == 'IN_PROGRESS' %}bg-info{% elif wi.status == 'COMPLETED' %}bg-success{% elif wi.status == 'REVERTED' %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size:0.65rem;">
+                                    {{ wi.get_status_display }}
+                                </span>
+                                {% if wi.assigned_to %}
+                                <small class="d-block text-muted mt-1" style="font-size:0.6rem;">
+                                    <i class="bi bi-person"></i> {{ wi.assigned_to.get_full_name|default:wi.assigned_to.username }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% elif batch.status == "COMPLETED" %}
+        <p class="text-muted text-center py-4 mb-0">No work items found in this batch.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.work-item-card {
+    border-width: 2px;
+    transition: transform .15s, box-shadow .15s;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.work-item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+.work-item-thumb {
+    height: 110px;
+    background-size: cover;
+    background-position: center;
+    background-color: #1a1a2e;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var checkboxes = document.querySelectorAll('.work-item-checkbox');
+    var selectAll = document.getElementById('selectAll');
+    var selectedCount = document.getElementById('selectedCount');
+    var bulkBtn = document.getElementById('bulkAssignBtn');
+    var bulkInput = document.getElementById('bulkWorkItems');
+    var bulkCount = document.getElementById('bulkCount');
+
+    function updateSelection() {
+        var selected = [];
+        checkboxes.forEach(function(cb) {
+            if (cb.checked) selected.push(cb.value);
+        });
+        var count = selected.length;
+        if (selectedCount) selectedCount.textContent = count + ' selected';
+        if (bulkBtn) bulkBtn.disabled = count === 0;
+        if (bulkInput) bulkInput.value = selected.join(',');
+        if (bulkCount) bulkCount.textContent = count;
+    }
+
+    checkboxes.forEach(function(cb) {
+        cb.addEventListener('change', updateSelection);
+    });
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
+            updateSelection();
+        });
+    }
+})();
+</script>
+{% endblock %}

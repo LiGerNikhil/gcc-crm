@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload Batches - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item active">Upload Batches</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Upload Batches</h2>
+        <p class="page-subtitle">Monitor all document uploads and their processing status.</p>
+    </div>
+    <div>
+        <div class="dropdown">
+            <button class="btn btn-gold btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-plus-lg"></i> Upload</button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li><a class="dropdown-item" href="{% url 'documents:pdf_upload' %}"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>PDF</a></li>
+                <li><a class="dropdown-item" href="{% url 'documents:image_upload' %}"><i class="bi bi-file-earmark-image text-primary me-2"></i>Images</a></li>
+                <li><a class="dropdown-item" href="{% url 'documents:excel_upload' %}"><i class="bi bi-file-earmark-excel text-success me-2"></i>Excel</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Types</option>
+                    {% for code, label in upload_types %}
+                    <option value="{{ code }}" {% if current_type == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    {% for code, label in batch_statuses %}
+                    <option value="{{ code }}" {% if current_status == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if current_type or current_status %}
+            <div class="col-auto">
+                <a href="{% url 'documents:batch_list' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Batch Code</th>
+                        <th>Source</th>
+                        <th>Type</th>
+                        <th>Records</th>
+                        <th>Uploaded By</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in batches %}
+                    <tr>
+                        <td><span class="fw-medium" style="font-size:0.8rem;">{{ batch.batch_code }}</span></td>
+                        <td>{{ batch.bank_source.name|default:"—"|truncatechars:25 }}</td>
+                        <td><span class="badge bg-secondary">{{ batch.get_upload_type_display }}</span></td>
+                        <td>
+                            {% if batch.status == "COMPLETED" %}
+                            <span class="fw-medium">{{ batch.total_records }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.8rem;">{{ batch.uploaded_by.get_full_name|default:batch.uploaded_by.username }}</td>
+                        <td style="font-size:0.8rem;">{{ batch.upload_date|date:"d M Y" }}</td>
+                        <td>
+                            {% if batch.status == "COMPLETED" %}
+                            <span class="badge-status completed">Completed</span>
+                            {% elif batch.status == "FAILED" %}
+                            <span class="badge-status failed">Failed</span>
+                            {% elif batch.status == "PROCESSING" %}
+                            <span class="badge-status processing">Processing</span>
+                            {% elif batch.status == "DRAFT" %}
+                            <span class="badge-status pending">Draft</span>
+                            {% elif batch.status == "PARTIAL" %}
+                            <span class="badge-status" style="background:#ffc107;color:#000;">Partial</span>
+                            {% elif batch.status == "CANCELLED" %}
+                            <span class="badge-status" style="background:#6c757d;color:#fff;">Cancelled</span>
+                            {% else %}
+                            <span class="badge-status pending">{{ batch.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light border" data-bs-toggle="dropdown" data-bs-boundary="viewport"><i class="bi bi-three-dots"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <li><a class="dropdown-item" href="{% url 'documents:batch_detail' batch.id %}"><i class="bi bi-list-check me-2"></i>Work Items</a></li>
+                                    {% if batch.upload_type == "PDF" and batch.file_path %}
+                                    <li><a class="dropdown-item" href="{% url 'documents:batch_download' batch.id %}"><i class="bi bi-download me-2"></i>Download PDF</a></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:0.5rem;"></i>
+                            No upload batches yet. <a href="{% url 'documents:pdf_upload' %}">Upload a PDF.</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <span style="font-size:0.8rem;color:var(--crm-text-muted);">
+            Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+        </span>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"><i class="bi bi-chevron-double-left"></i></a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"><i class="bi bi-chevron-left"></i></a></li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if num == page_obj.number %}
+                    <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"><i class="bi bi-chevron-right"></i></a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}"><i class="bi bi-chevron-double-right"></i></a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

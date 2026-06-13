@@ -1,0 +1,75 @@
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div>
+            <div class="logo-text">GCC<span> CRM</span></div>
+            <span class="brand-sub">Enterprise Suite</span>
+        </div>
+    </div>
+
+    <div class="nav-section">Main</div>
+    <a href="{% url 'accounts:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+        <i class="bi bi-grid-1x2"></i> Dashboard
+    </a>
+    <a href="{% url 'documents:work_queue' %}" class="nav-link {% if request.resolver_match.url_name == 'work_queue' %}active{% endif %}">
+        <i class="bi bi-list-check"></i> My Work
+    </a>
+
+    <div class="nav-section">Sales</div>
+    <a href="{% url 'leads:list' %}" class="nav-link {% if 'lead' in request.resolver_match.url_name and 'assignment' not in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-people"></i> Leads
+    </a>
+    <a href="{% url 'leads:assignment_history' %}" class="nav-link {% if 'assignment' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-clock-history"></i> Assignments
+    </a>
+    <a href="{% url 'leads:assignment_rules' %}" class="nav-link {% if 'assignment_rule' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-diagram-3"></i> Assignment Rules
+    </a>
+    <a href="#" class="nav-link {% if 'campaign' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-megaphone"></i> Campaigns
+    </a>
+
+    <div class="nav-section">Documents</div>
+    <a href="{% url 'documents:batch_list' %}" class="nav-link {% if request.resolver_match.namespace == 'documents' and request.resolver_match.url_name == 'batch_list' %}active{% endif %}">
+        <i class="bi bi-layers"></i> Upload Batches
+    </a>
+    <a href="{% url 'documents:pdf_upload' %}" class="nav-link {% if request.resolver_match.namespace == 'documents' and request.resolver_match.url_name == 'pdf_upload' %}active{% endif %}">
+        <i class="bi bi-file-earmark-pdf"></i> PDF Upload
+    </a>
+    <a href="{% url 'documents:image_upload' %}" class="nav-link {% if request.resolver_match.namespace == 'documents' and request.resolver_match.url_name == 'image_upload' %}active{% endif %}">
+        <i class="bi bi-file-earmark-image"></i> Image Upload
+    </a>
+    <a href="{% url 'documents:excel_upload' %}" class="nav-link {% if request.resolver_match.namespace == 'documents' and request.resolver_match.url_name == 'excel_upload' %}active{% endif %}">
+        <i class="bi bi-file-earmark-excel"></i> Excel Upload
+    </a>
+
+    {% if user_role_code == "SUPER_ADMIN" or user_role_code == "TEAM_LEAD" %}
+    <div class="nav-section">Administration</div>
+    <a href="{% url 'org:org_tree' %}" class="nav-link {% if request.resolver_match.namespace == 'org' %}active{% endif %}">
+        <i class="bi bi-diagram-2"></i> Organization
+    </a>
+    <a href="{% url 'accounts:user_list' %}" class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
+        <i class="bi bi-shield-people"></i> Users
+    </a>
+    <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' and 'analytics' in request.resolver_match.namespace %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i> Analytics
+    </a>
+    <a href="{% url 'audit:log_list' %}" class="nav-link {% if 'audit' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-journal-text"></i> Audit Logs
+    </a>
+    {% endif %}
+
+    <div class="nav-section">Account</div>
+    <a href="{% url 'accounts:profile' %}" class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+        <i class="bi bi-person-circle"></i> My Profile
+    </a>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar">{{ user.get_full_name|default:user.username|make_list|first|upper }}</div>
+            <div class="user-details">
+                <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+                <div class="user-role">{{ user_role_name|default:"User" }}</div>
+            </div>
+        </div>
+    </div>
+</aside>

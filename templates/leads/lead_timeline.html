@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static lead_tags %}
+
+{% block title %}Timeline - {{ lead.customer_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'leads:list' %}">Leads</a></li>
+<li class="breadcrumb-item"><a href="{% url 'leads:detail' lead.id %}">{{ lead.lead_number }}</a></li>
+<li class="breadcrumb-item active">Timeline</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2><i class="bi bi-clock-history text-gold"></i> Timeline</h2>
+        <p class="page-subtitle">{{ lead.customer_name }} &middot; {{ lead.lead_number }}</p>
+    </div>
+    <a href="{% url 'leads:detail' lead.id %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-arrow-left"></i> Back to Lead</a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-clock-history me-2 text-gold"></i> Full Activity Timeline</span>
+                <span class="badge bg-secondary ms-2">{{ timeline|length }} events</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="timeline-vertical px-3 py-3">
+                    {% for event in timeline %}
+                    <div class="timeline-item d-flex align-items-start gap-3 mb-3 pb-3 border-bottom">
+                        <div class="timeline-marker d-flex flex-column align-items-center flex-shrink-0" style="width:32px;">
+                            <div class="timeline-dot bg-{{ event.color }} d-flex align-items-center justify-content-center rounded-circle text-white"
+                                 style="width:32px;height:32px;font-size:0.85rem;">
+                                <i class="{{ event.icon }}"></i>
+                            </div>
+                            {% if not forloop.last %}
+                            <div class="timeline-line flex-grow-1" style="width:2px;background:#e0e0e0;min-height:20px;"></div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1 min-width-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <strong>{{ event.title }}</strong>
+                                <small class="text-muted flex-shrink-0 ms-2">{{ event.timestamp|date:"d M Y, h:i A" }}</small>
+                            </div>
+                            <div class="small text-muted">
+                                {% if event.user %}
+                                <span class="me-2"><i class="bi bi-person"></i> {{ event.user.get_full_name|default:event.user.username }}</span>
+                                {% endif %}
+                                <span>{{ event.timestamp|timesince }} ago</span>
+                            </div>
+                            {% if event.description %}
+                            <div class="mt-1 small">{{ event.description|linebreaksbr }}</div>
+                            {% endif %}
+                            {% if event.url %}
+                            <div class="mt-1">
+                                <a href="{{ event.url }}" target="_blank" class="btn btn-sm btn-outline-primary py-0"><i class="bi bi-play-circle"></i> Listen</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-clock-history" style="font-size:3rem;"></i>
+                        <p class="mt-3">No activity recorded for this lead yet.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline-marker .timeline-line {
+    flex-grow: 1;
+    min-height: 20px;
+}
+</style>
+{% endblock %}

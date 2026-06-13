@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Audit Log Detail{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'audit:log_list' %}">Audit Logs</a></li>
+<li class="breadcrumb-item active">Detail</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2><i class="bi bi-journal-text text-gold"></i> Audit Log Detail</h2>
+        <p class="page-subtitle">{{ log.description }}</p>
+    </div>
+    <a href="{% url 'audit:log_list' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-info-circle me-2 text-gold"></i> Action Details</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Action</label>
+                        <div><span class="badge bg-primary">{{ log.get_action_display }}</span></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Model</label>
+                        <div class="fw-medium">{{ log.model_name }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Record ID</label>
+                        <div class="text-muted small">{{ log.record_id }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Timestamp</label>
+                        <div>{{ log.timestamp|date:"d M Y, h:i:s A" }}</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-muted small">Description</label>
+                        <div>{{ log.description|linebreaksbr }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if log.old_values %}
+        <div class="card mt-3">
+            <div class="card-header"><i class="bi bi-arrow-left-circle me-2 text-danger"></i> Old Values</div>
+            <div class="card-body">
+                <pre class="mb-0" style="font-size:0.8rem;max-height:300px;overflow-y:auto;">{{ log.old_values }}</pre>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if log.new_values %}
+        <div class="card mt-3">
+            <div class="card-header"><i class="bi bi-arrow-right-circle me-2 text-success"></i> New Values</div>
+            <div class="card-body">
+                <pre class="mb-0" style="font-size:0.8rem;max-height:300px;overflow-y:auto;">{{ log.new_values }}</pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-person me-2 text-gold"></i> User</div>
+            <div class="card-body">
+                {% if log.user %}
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="user-avatar" style="width:36px;height:36px;font-size:0.8rem;">{{ log.user.get_full_name|default:log.user.username|make_list|first|upper }}</div>
+                    <div>
+                        <div class="fw-medium">{{ log.user.get_full_name|default:log.user.username }}</div>
+                        <small class="text-muted">{{ log.user.email|default:"" }}</small>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted small mb-0">System / Anonymous</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header"><i class="bi bi-globe me-2 text-gold"></i> Request</div>
+            <div class="card-body small">
+                <div class="mb-1"><span class="text-muted">IP:</span> {{ log.ip_address|default:"—" }}</div>
+                <div class="mb-0"><span class="text-muted">User Agent:</span><br>{{ log.user_agent|default:"—"|truncatechars:100 }}</div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header"><i class="bi bi-tag me-2 text-gold"></i> Metadata</div>
+            <div class="card-body small">
+                <div class="mb-1"><span class="text-muted">Log ID:</span> <code>{{ log.id }}</code></div>
+                <div class="mb-1"><span class="text-muted">Action Code:</span> {{ log.action }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}PDF Viewer - {{ pdf_import.file_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'pdf:list' %}">PDF Imports</a></li>
+<li class="breadcrumb-item active">{{ pdf_import.file_name|truncatechars:30 }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>PDF Viewer</h2>
+        <p class="page-subtitle">{{ pdf_import.file_name }} &middot; {{ total_pages }} page(s)</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'pdf:detail' pdf_import.id %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-info-circle"></i> Details</a>
+        <a href="{% url 'pdf:download' pdf_import.id %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-download"></i> Download PDF</a>
+    </div>
+</div>
+
+{% if pdf_import.extraction_status == "FAILED" %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-circle"></i> Processing failed: {{ pdf_import.error_message }}
+</div>
+{% elif pdf_import.extraction_status == "PROCESSING" %}
+<div class="alert alert-info">
+    <i class="bi bi-arrow-repeat"></i> PDF is still being processed. <a href="{% url 'pdf:viewer' pdf_import.id %}">Refresh</a>
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <div class="col-lg-2">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-layers"></i> Pages</div>
+            <div class="card-body p-0" style="max-height:70vh;overflow-y:auto;">
+                <div class="list-group list-group-flush">
+                    {% for page in pages %}
+                    <a href="{% url 'pdf:viewer' pdf_import.id %}?page={{ page.page_number }}"
+                       class="list-group-item list-group-item-action d-flex align-items-center gap-2 {% if request.GET.page|default:'1' == page.page_number|stringformat:'i' %}active{% endif %}"
+                       style="font-size:0.8rem;">
+                        <span class="badge bg-secondary rounded-pill">{{ page.page_number }}</span>
+                        <small>{{ page.width }}x{{ page.height }}</small>
+                    </a>
+                    {% empty %}
+                    <div class="list-group-item text-muted text-center small py-3">No pages</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-file-image me-2 text-gold"></i> Page {{ current_page_number }} of {{ total_pages }}</span>
+                <div class="d-flex gap-2">
+                    {% if current_page_number > 1 %}
+                    <a href="?page={{ current_page_number|add:'-1' }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i> Previous</a>
+                    {% endif %}
+                    {% if current_page_number < total_pages %}
+                    <a href="?page={{ current_page_number|add:'1' }}" class="btn btn-sm btn-outline-secondary">Next <i class="bi bi-chevron-right"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body text-center bg-light">
+                {% if current_page %}
+                <img src="{% url 'pdf:page_image' pdf_import.id current_page.page_number %}"
+                     class="img-fluid shadow"
+                     alt="Page {{ current_page.page_number }}"
+                     style="max-height:80vh;">
+                {% else %}
+                <div class="py-5 text-muted"><i class="bi bi-file-earmark"></i> Page not found</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

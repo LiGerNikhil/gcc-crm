@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Organization - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item active">Organization</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Organization</h2>
+        <p class="page-subtitle">Manage your organizational hierarchy.</p>
+    </div>
+    {% if role_code == "SUPER_ADMIN" %}
+    <div class="d-flex gap-2">
+        <a href="{% url 'org:manager_create' %}" class="btn btn-gold btn-sm"><i class="bi bi-person-plus"></i> Manager</a>
+        <a href="{% url 'org:teamlead_create' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-person-plus"></i> Team Lead</a>
+        <a href="{% url 'org:aro_create' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-person-plus"></i> ARO</a>
+    </div>
+    {% endif %}
+</div>
+
+{% for m in managers %}
+<div class="card mb-4">
+    <div class="card-header bg-crm-primary text-white d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-person-badge me-2"></i> {{ m.user.get_full_name|default:m.user.username }}</span>
+        <span class="badge bg-gold">Manager</span>
+    </div>
+    <div class="card-body p-0">
+        {% for tl in m.subordinates.all %}
+        {% if tl.role.role_code == "TEAM_LEAD" and tl.is_active %}
+        <div class="border-bottom">
+            <div class="px-3 py-2 d-flex align-items-center justify-content-between" style="background:var(--crm-light);">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-person text-gold"></i>
+                    <strong>{{ tl.user.get_full_name|default:tl.user.username }}</strong>
+                    <span class="badge bg-secondary" style="font-size:0.65rem;">Team Lead</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted" style="font-size:0.75rem;">{{ tl.user.email }}</span>
+                    <a href="{% url 'org:teamlead_detail' tl.pk %}" class="btn btn-sm btn-outline-gold" style="font-size:0.7rem;padding:0.15rem 0.5rem;"><i class="bi bi-eye"></i></a>
+                    {% if role_code == "SUPER_ADMIN" %}
+                    <a href="{% url 'org:teamlead_edit' tl.pk %}" class="btn btn-sm btn-outline-gold" style="font-size:0.7rem;padding:0.15rem 0.5rem;"><i class="bi bi-pencil"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+            {% for aro in tl.subordinates.all %}
+            {% if aro.role.role_code == "ARO" and aro.is_active %}
+            <div class="px-4 py-2 d-flex align-items-center justify-content-between border-top" style="padding-left:3rem!important;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-person-circle text-muted"></i>
+                    <span>{{ aro.user.get_full_name|default:aro.user.username }}</span>
+                    <span class="badge bg-info" style="font-size:0.6rem;">ARO</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted" style="font-size:0.75rem;">{{ aro.user.email }}</span>
+                    <a href="{% url 'org:aro_detail' aro.pk %}" class="btn btn-sm btn-outline-gold" style="font-size:0.7rem;padding:0.15rem 0.5rem;"><i class="bi bi-eye"></i></a>
+                    {% if role_code == "SUPER_ADMIN" %}
+                    <a href="{% url 'org:aro_edit' aro.pk %}" class="btn btn-sm btn-outline-gold" style="font-size:0.7rem;padding:0.15rem 0.5rem;"><i class="bi bi-pencil"></i></a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% empty %}
+            <div class="px-4 py-2 text-muted border-top" style="padding-left:3rem!important;font-size:0.8rem;">
+                <i class="bi bi-info-circle me-1"></i> No AROs assigned
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% empty %}
+        <div class="p-3 text-center text-muted" style="font-size:0.85rem;">
+            <i class="bi bi-info-circle me-1"></i> No Team Leads assigned
+        </div>
+        {% endfor %}
+    </div>
+    <div class="card-footer text-end py-2">
+        <a href="{% url 'org:manager_detail' m.pk %}" class="text-decoration-none" style="font-size:0.8rem;color:var(--crm-gold-dark);">
+            <i class="bi bi-bar-chart"></i> View Details
+        </a>
+    </div>
+</div>
+{% empty %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-people" style="font-size:3rem;color:var(--crm-text-muted);display:block;margin-bottom:1rem;"></i>
+        <h5 class="text-muted">No Managers Found</h5>
+        {% if role_code == "SUPER_ADMIN" %}
+        <p class="text-muted">Create managers and team leads to build your organization.</p>
+        <a href="{% url 'org:manager_create' %}" class="btn btn-gold mt-2"><i class="bi bi-person-plus"></i> Create Manager</a>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+{% if unassigned %}
+<div class="card mt-4">
+    <div class="card-header bg-secondary text-white d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-person-dash me-2"></i> Unassigned Members</span>
+        <span class="badge bg-light text-dark">{{ unassigned|length }}</span>
+    </div>
+    <div class="card-body p-0">
+        {% for ua in unassigned %}
+        <div class="px-3 py-2 d-flex align-items-center justify-content-between {% if not forloop.first %}border-top{% endif %}">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-person text-muted"></i>
+                <strong>{{ ua.user.get_full_name|default:ua.user.username }}</strong>
+                <span class="badge bg-{% if ua.role.role_code == 'TEAM_LEAD' %}secondary{% else %}info{% endif %}" style="font-size:0.65rem;">{{ ua.role.name }}</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted" style="font-size:0.75rem;">{{ ua.user.email }}</span>
+                {% if ua.role.role_code == "TEAM_LEAD" %}
+                <a href="{% url 'org:teamlead_detail' ua.pk %}" class="btn btn-sm btn-outline-gold" style="font-size:0.7rem;padding:0.15rem 0.5rem;"><i class="bi bi-eye"></i></a>
+                {% else %}
+                <a href="{% url 'org:aro_detail' ua.pk %}" class="btn btn-sm btn-outline-gold" style="font-size:0.7rem;padding:0.15rem 0.5rem;"><i class="bi bi-eye"></i></a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

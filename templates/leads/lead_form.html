@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit Lead{% else %}Add Lead{% endif %} - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'leads:list' %}">Leads</a></li>
+<li class="breadcrumb-item active">{% if form.instance.pk %}Edit: {{ form.instance.lead_number }}{% else %}Add Lead{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>{% if form.instance.pk %}Edit Lead{% else %}Add New Lead{% endif %}</h2>
+        <p class="page-subtitle">{% if form.instance.pk %}Update lead information.{% else %}Enter the details of the new lead.{% endif %}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-12"><h6 class="text-gold border-bottom pb-2">Basic Information</h6></div>
+
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.lead_number.label }}</label>
+                    {{ form.lead_number }}
+                    {% if form.lead_number.errors %}<div class="text-danger small">{{ form.lead_number.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.lead_source_id.label }}</label>
+                    {{ form.lead_source_id }}
+                    {% if form.lead_source_id.errors %}<div class="text-danger small">{{ form.lead_source_id.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.batch.label }}</label>
+                    {{ form.batch }}
+                    {% if form.batch.errors %}<div class="text-danger small">{{ form.batch.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.customer_name.label }}</label>
+                    {{ form.customer_name }}
+                    {% if form.customer_name.errors %}<div class="text-danger small">{{ form.customer_name.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.phone.label }}</label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}<div class="text-danger small">{{ form.phone.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.email.label }}</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.pan_number.label }}</label>
+                    {{ form.pan_number }}
+                    {% if form.pan_number.errors %}<div class="text-danger small">{{ form.pan_number.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.loan_type.label }}</label>
+                    {{ form.loan_type }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.priority.label }}</label>
+                    {{ form.priority }}
+                </div>
+
+                <div class="col-12"><h6 class="text-gold border-bottom pb-2 mt-2">Loan Details</h6></div>
+
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.loan_amount.label }}</label>
+                    {{ form.loan_amount }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.property_value.label }}</label>
+                    {{ form.property_value }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.employment_type.label }}</label>
+                    {{ form.employment_type }}
+                </div>
+
+                <div class="col-12"><h6 class="text-gold border-bottom pb-2 mt-2">Address</h6></div>
+
+                <div class="col-12">
+                    <label class="form-label">{{ form.address.label }}</label>
+                    {{ form.address }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.city.label }}</label>
+                    {{ form.city }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.state.label }}</label>
+                    {{ form.state }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">{{ form.pincode.label }}</label>
+                    {{ form.pincode }}
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-gold">
+                    <i class="bi bi-check-lg"></i> {% if form.instance.pk %}Update Lead{% else %}Create Lead{% endif %}
+                </button>
+                <a href="{% url 'leads:list' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

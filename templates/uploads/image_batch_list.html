@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Image Batches - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'imager:gallery' %}">Images</a></li>
+<li class="breadcrumb-item active">Batches</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2>Image Batches</h2>
+        <p class="page-subtitle">Groups of images uploaded together for batch processing.</p>
+    </div>
+    <a href="{% url 'imager:upload' %}" class="btn btn-gold">
+        <i class="bi bi-cloud-upload"></i> New Upload
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Batch Name</th>
+                        <th>Campaign</th>
+                        <th>Status</th>
+                        <th class="text-center">Images</th>
+                        <th class="text-center">Linked Leads</th>
+                        <th>Created By</th>
+                        <th>Created</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for batch in batches %}
+                    <tr>
+                        <td class="fw-medium">{{ batch.name }}</td>
+                        <td>{{ batch.campaign.name|default:"--" }}</td>
+                        <td>
+                            {% if batch.status == "PENDING" %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif batch.status == "PROCESSING" %}
+                            <span class="badge bg-info">Processing</span>
+                            {% elif batch.status == "COMPLETED" %}
+                            <span class="badge bg-success">Completed</span>
+                            {% elif batch.status == "PARTIAL" %}
+                            <span class="badge bg-secondary">Partial</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">{{ batch.img_count|default:batch.total_images }}</td>
+                        <td class="text-center">{{ batch.linked_leads_count|default:batch.linked_leads }}</td>
+                        <td>{{ batch.created_by.get_full_name|default:batch.created_by.username|default:"--" }}</td>
+                        <td style="font-size:0.85rem;">{{ batch.created_at|date:"d M Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'imager:gallery' %}?batch={{ batch.id }}" class="btn btn-sm btn-outline-primary" title="View Images">
+                                <i class="bi bi-images"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">No image batches yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page=1">First</a></li>
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Prev</a></li>
+        {% endif %}
+        <li class="page-item active"><span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

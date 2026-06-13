@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% load static lead_tags %}
+
+{% block title %}Leads - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item active">Leads</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Leads</h2>
+        <p class="page-subtitle">Manage and track all leads in the pipeline.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if user_role_code == "SUPER_ADMIN" or user_role_code == "TEAM_LEAD" %}
+        <a href="{% url 'leads:create' %}" class="btn btn-gold btn-sm"><i class="bi bi-plus-lg"></i> Add Lead</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="filters-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-lg-3 col-md-6">
+            <label class="form-label">Search</label>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="Name, phone, email..." value="{{ request.GET.search }}">
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select form-select-sm">
+                <option value="">All Statuses</option>
+                {% for code, label in filter.form.fields.status.choices %}
+                <option value="{{ code }}" {% if request.GET.status == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label class="form-label">Priority</label>
+            <select name="priority" class="form-select form-select-sm">
+                <option value="">All Priorities</option>
+                {% for code, label in filter.form.fields.priority.choices %}
+                <option value="{{ code }}" {% if request.GET.priority == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label class="form-label">Loan Type</label>
+            <select name="loan_type" class="form-select form-select-sm">
+                <option value="">All Types</option>
+                {% for code, label in filter.form.fields.loan_type.choices %}
+                <option value="{{ code }}" {% if request.GET.loan_type == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-lg-3 col-md-6 d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1"><i class="bi bi-funnel"></i> Apply</button>
+            <a href="{% url 'leads:list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle"></i> Clear</a>
+        </div>
+    </form>
+</div>
+
+{% if user_role_code == "SUPER_ADMIN" or user_role_code == "TEAM_LEAD" %}
+<form id="bulk-assign-form" method="get" action="{% url 'leads:assign' %}">
+{% endif %}
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        {% if user_role_code == "SUPER_ADMIN" or user_role_code == "TEAM_LEAD" %}
+                        <th style="width:40px;"><input type="checkbox" id="selectAll" class="form-check-input"></th>
+                        {% endif %}
+                        <th>Lead #</th>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Loan Type</th>
+                        <th>Amount</th>
+                        <th>Source</th>
+                        <th>Assigned To</th>
+                        <th>Status</th>
+                        <th style="width:80px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lead in leads %}
+                    <tr>
+                        {% if user_role_code == "SUPER_ADMIN" or user_role_code == "TEAM_LEAD" %}
+                        <td><input type="checkbox" name="leads" value="{{ lead.id }}" class="form-check-input row-select"></td>
+                        {% endif %}
+                        <td><span class="fw-medium" style="font-size:0.8rem;">{{ lead.lead_number }}</span></td>
+                        <td>
+                            <div class="fw-medium"><a href="{% url 'leads:detail' lead.id %}" class="text-decoration-none">{{ lead.customer_name }}</a></div>
+                            <div style="font-size:0.7rem;color:var(--crm-text-muted);">{{ lead.email|default:"" }}</div>
+                        </td>
+                        <td>{{ lead.phone }}</td>
+                        <td>{{ lead.get_loan_type_display }}</td>
+                        <td>{{ lead.loan_amount|currency }}</td>
+                        <td>{{ lead.batch.campaign.bank_source.name|default:"-" }}</td>
+                        <td>
+                            {% if lead.assigned_to %}
+                            <div class="d-flex align-items-center gap-1">
+                                <div class="user-avatar" style="width:24px;height:24px;font-size:0.55rem;">{{ lead.assigned_to.get_full_name|default:lead.assigned_to.username|make_list|first|upper }}</div>
+                                <span style="font-size:0.8rem;">{{ lead.assigned_to.get_full_name|default:lead.assigned_to.username }}</span>
+                            </div>
+                            {% else %}
+                            <span class="text-muted" style="font-size:0.8rem;">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ lead.lead_status|status_badge }}</td>
+                        <td>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light border" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <li><a class="dropdown-item" href="{% url 'leads:detail' lead.id %}"><i class="bi bi-eye me-2"></i>View</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'leads:edit' lead.id %}"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                                    {% if user_role_code == "SUPER_ADMIN" or user_role_code == "TEAM_LEAD" %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="post" action="{% url 'leads:delete' lead.id %}" onsubmit="return confirm('Delete this lead?')">
+                                            {% csrf_token %}
+                                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i>Delete</button>
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if user_role_code == 'SUPER_ADMIN' or user_role_code == 'TEAM_LEAD' %}10{% else %}9{% endif %}" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:0.5rem;"></i>
+                            No leads found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <span style="font-size:0.8rem;color:var(--crm-text-muted);">
+            Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} leads
+        </span>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}"><i class="bi bi-chevron-double-left"></i></a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}"><i class="bi bi-chevron-left"></i></a></li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if num == page_obj.number %}
+                    <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}"><i class="bi bi-chevron-right"></i></a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}"><i class="bi bi-chevron-double-right"></i></a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% if user_role_code == "SUPER_ADMIN" or user_role_code == "TEAM_LEAD" %}
+<div class="mt-3" id="bulk-actions" style="display:none;">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-person-plus"></i> Assign Selected</button>
+</div>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            document.querySelectorAll('.row-select').forEach(function(cb) {
+                cb.checked = selectAll.checked;
+            });
+            toggleBulkActions();
+        });
+        document.querySelectorAll('.row-select').forEach(function(cb) {
+            cb.addEventListener('change', toggleBulkActions);
+        });
+    }
+    function toggleBulkActions() {
+        var checked = document.querySelectorAll('.row-select:checked').length;
+        var el = document.getElementById('bulk-actions');
+        if (el) el.style.display = checked > 0 ? 'block' : 'none';
+    }
+});
+</script>
+{% endblock %}

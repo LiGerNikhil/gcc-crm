@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload Excel - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'excel:import_list' %}">Imports</a></li>
+<li class="breadcrumb-item active">Excel Upload</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Excel Upload</h2>
+        <p class="page-subtitle">Bulk import leads from Excel or CSV files.</p>
+    </div>
+    <div>
+        <a href="{% url 'excel:import_list' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-clock-history"></i> Import History</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-file-earmark-excel me-2 text-success"></i> Upload Excel / CSV</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="upload-zone mb-4" id="excelUploadZone" onclick="document.getElementById('fileInput').click()">
+                        <div class="upload-icon"><i class="bi bi-file-earmark-excel"></i></div>
+                        <h6 id="uploadText">Drop file here or click to browse</h6>
+                        <p>Supports .xlsx, .xls, .csv files</p>
+                        <input type="file" name="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden required>
+                        {% if form.file.errors %}<div class="text-danger small mt-2">{{ form.file.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.campaign.label }}</label>
+                            {{ form.campaign }}
+                            {% if form.campaign.errors %}<div class="text-danger small">{{ form.campaign.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.batch_name.label }}</label>
+                            {{ form.batch_name }}
+                            <div class="form-text">{{ form.batch_name.help_text }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.sheet_name.label }}</label>
+                            {{ form.sheet_name }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.header_row.label }}</label>
+                            {{ form.header_row }}
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check">
+                                {{ form.skip_duplicates }}
+                                <label class="form-check-label" for="id_skip_duplicates" style="font-size:0.85rem;">
+                                    {{ form.skip_duplicates.label }}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span style="font-size:0.8rem;color:var(--crm-text-muted);">
+                            <i class="bi bi-info-circle me-1"></i> Uploading will create a new batch
+                        </span>
+                        <button type="submit" class="btn btn-gold" id="uploadBtn">
+                            <i class="bi bi-cloud-upload"></i> Upload & Preview
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i> Expected Columns</div>
+            <div class="card-body" style="font-size:0.85rem;">
+                <p class="mb-2 fw-medium">Required:</p>
+                <ul class="mb-3" style="padding-left:1rem;">
+                    <li class="mb-1"><strong>Name</strong> — Customer full name</li>
+                    <li><strong>Phone</strong> — 10-digit mobile number</li>
+                </ul>
+                <p class="mb-2 fw-medium">Optional:</p>
+                <ul style="padding-left:1rem;">
+                    <li>Email, PAN, Loan Amount, Loan Type</li>
+                    <li>Property Value, Employment Type</li>
+                    <li>Address, City, State, Pincode</li>
+                    <li>Lead Source ID</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="bi bi-shield-check me-2 text-success"></i> Validation Rules</div>
+            <div class="card-body" style="font-size:0.8rem;">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>Phone: 10-digit Indian mobile</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>Duplicate detection: phone, email, PAN</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>Amount: Numeric with optional ₹ prefix</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var fileInput = document.getElementById('fileInput');
+    var uploadText = document.getElementById('uploadText');
+    var uploadZone = document.getElementById('excelUploadZone');
+
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files.length > 0) {
+            uploadText.innerHTML = '<i class="bi bi-check-circle text-success"></i> ' + fileInput.files[0].name;
+        }
+    });
+
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+    uploadZone.addEventListener('dragleave', function() {
+        uploadZone.classList.remove('dragover');
+    });
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            uploadText.innerHTML = '<i class="bi bi-check-circle text-success"></i> ' + fileInput.files[0].name;
+        }
+    });
+});
+</script>
+{% endblock %}

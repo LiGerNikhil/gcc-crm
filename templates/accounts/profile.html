@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Profile - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item active">My Profile</li>
+{% endblock %}
+
+{% block content %}
+{% with full_name=profile_user.get_full_name|default:profile_user.username initial=profile_user.get_full_name|default:profile_user.username|make_list|first|upper %}
+
+<!-- Profile Header -->
+<div class="card border-0 shadow-sm overflow-hidden mb-4">
+    <div class="position-relative" style="height:140px;background:linear-gradient(135deg,var(--crm-primary) 0%,var(--crm-sidebar) 100%);">
+        <div class="position-absolute bottom-0 start-0 p-4 w-100" style="background:linear-gradient(transparent,rgba(0,0,0,0.4));">
+            <div class="d-flex align-items-end gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center border border-2 border-white shadow"
+                     style="width:80px;height:80px;background:var(--crm-gold);font-size:2rem;font-weight:700;color:var(--crm-white);flex-shrink:0;">
+                    {{ initial }}
+                </div>
+                <div class="text-white pb-1">
+                    <h4 class="mb-0 fw-bold">{{ full_name }}</h4>
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                        {% if profile %}
+                        <span class="badge" style="background:var(--crm-gold);font-size:0.65rem;font-weight:600;letter-spacing:0.3px;">{{ profile.role.name }}</span>
+                        <span class="text-white-50" style="font-size:0.8rem;">{{ profile.get_department_display|default:"" }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+
+    <!-- Left Column -->
+    <div class="col-xl-4 col-lg-5">
+        <!-- Contact Info -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex align-items-center gap-2 py-3">
+                <i class="bi bi-info-circle text-gold"></i>
+                <span class="fw-semibold" style="font-size:0.85rem;">Account Details</span>
+            </div>
+            <div class="card-body py-3">
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;background:var(--crm-light);flex-shrink:0;">
+                            <i class="bi bi-person text-gold" style="font-size:0.9rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;color:var(--crm-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Username</div>
+                            <div style="font-size:0.85rem;font-weight:500;">{{ profile_user.username }}</div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;background:var(--crm-light);flex-shrink:0;">
+                            <i class="bi bi-envelope text-gold" style="font-size:0.9rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;color:var(--crm-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Email</div>
+                            <div style="font-size:0.85rem;font-weight:500;">{{ profile_user.email }}</div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;background:var(--crm-light);flex-shrink:0;">
+                            <i class="bi bi-telephone text-gold" style="font-size:0.9rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;color:var(--crm-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Phone</div>
+                            <div style="font-size:0.85rem;font-weight:500;">{{ profile.phone|default:"—" }}</div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;background:var(--crm-light);flex-shrink:0;">
+                            <i class="bi bi-building text-gold" style="font-size:0.9rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;color:var(--crm-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Department</div>
+                            <div style="font-size:0.85rem;font-weight:500;">{{ profile.get_department_display|default:"—" }}</div>
+                        </div>
+                    </div>
+                    {% if profile and profile.manager %}
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle" style="width:36px;height:36px;background:var(--crm-light);flex-shrink:0;">
+                            <i class="bi bi-person-badge text-gold" style="font-size:0.9rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;color:var(--crm-text-muted);text-transform:uppercase;letter-spacing:0.5px;">Manager</div>
+                            <div style="font-size:0.85rem;font-weight:500;">{{ profile.manager.user.get_full_name|default:profile.manager.user.username }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Password Change -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex align-items-center gap-2 py-3" role="button" data-bs-toggle="collapse" data-bs-target="#passwordCollapse" aria-expanded="false" style="cursor:pointer;">
+                <i class="bi bi-key text-gold"></i>
+                <span class="fw-semibold" style="font-size:0.85rem;">Change Password</span>
+                <i class="bi bi-chevron-down ms-auto" style="font-size:0.75rem;transition:transform 0.2s;" id="passwordChevron"></i>
+            </div>
+            <div class="collapse" id="passwordCollapse">
+                <div class="card-body py-3">
+                    <form method="post" action="{% url 'accounts:password_change' %}" id="passwordForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:0.8rem;">Current Password</label>
+                            <input type="password" name="old_password" class="form-control form-control-sm" placeholder="Enter current password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:0.8rem;">New Password</label>
+                            <input type="password" name="new_password1" class="form-control form-control-sm" placeholder="Enter new password" required>
+                            <div class="form-text" style="font-size:0.7rem;">At least 8 characters. Not entirely numeric.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:0.8rem;">Confirm New Password</label>
+                            <input type="password" name="new_password2" class="form-control form-control-sm" placeholder="Confirm new password" required>
+                        </div>
+                        <button type="submit" class="btn btn-gold btn-sm w-100">
+                            <i class="bi bi-check-lg"></i> Update Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Info -->
+        <div class="card shadow-sm">
+            <div class="card-header d-flex align-items-center gap-2 py-3">
+                <i class="bi bi-clock-history text-gold"></i>
+                <span class="fw-semibold" style="font-size:0.85rem;">Activity</span>
+            </div>
+            <div class="card-body py-3">
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span style="font-size:0.8rem;color:var(--crm-text-muted);">Last Login</span>
+                        <span style="font-size:0.8rem;font-weight:500;">{{ profile_user.last_login|date:"d M Y, H:i"|default:"—" }}</span>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span style="font-size:0.8rem;color:var(--crm-text-muted);">Date Joined</span>
+                        <span style="font-size:0.8rem;font-weight:500;">{{ profile_user.date_joined|date:"d M Y, H:i" }}</span>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span style="font-size:0.8rem;color:var(--crm-text-muted);">Status</span>
+                        <span class="badge {% if profile_user.is_active %}bg-success{% else %}bg-danger{% endif %}" style="font-size:0.65rem;">{% if profile_user.is_active %}Active{% else %}Inactive{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-xl-8 col-lg-7">
+
+        {% if role_code == "SUPER_ADMIN" or role_code == "MANAGER" or role_code == "TEAM_LEAD" %}
+        <!-- KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3">
+                <div class="stat-card mb-0">
+                    <div class="stat-icon gold"><i class="bi bi-people"></i></div>
+                    <div class="stat-label">Total Leads</div>
+                    <div class="stat-value">{{ kpi.total_leads }}</div>
+                </div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card mb-0">
+                    <div class="stat-icon blue"><i class="bi bi-calendar-check"></i></div>
+                    <div class="stat-label">Today's Leads</div>
+                    <div class="stat-value">{{ kpi.leads_today }}</div>
+                </div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card mb-0">
+                    <div class="stat-icon green"><i class="bi bi-hand-thumbs-up"></i></div>
+                    <div class="stat-label">Interested</div>
+                    <div class="stat-value">{{ kpi.interested_leads }}</div>
+                </div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="stat-card mb-0">
+                    <div class="stat-icon orange"><i class="bi bi-clock-history"></i></div>
+                    <div class="stat-label">Pending Follow-ups</div>
+                    <div class="stat-value">{{ kpi.pending_followups }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Personal Information -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex align-items-center gap-2 py-3">
+                <i class="bi bi-person-lines-fill text-gold"></i>
+                <span class="fw-semibold" style="font-size:0.85rem;">Personal Information</span>
+            </div>
+            <div class="card-body py-3">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div style="font-size:0.7rem;color:var(--crm-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">First Name</div>
+                        <div style="font-size:0.9rem;font-weight:500;">{{ profile_user.first_name|default:"—" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div style="font-size:0.7rem;color:var(--crm-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">Last Name</div>
+                        <div style="font-size:0.9rem;font-weight:500;">{{ profile_user.last_name|default:"—" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div style="font-size:0.7rem;color:var(--crm-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">Email</div>
+                        <div style="font-size:0.9rem;font-weight:500;">{{ profile_user.email }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div style="font-size:0.7rem;color:var(--crm-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.25rem;">Phone</div>
+                        <div style="font-size:0.9rem;font-weight:500;">{{ profile.phone|default:"—" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if profile and role_code == "MANAGER" %}
+        <!-- Manager: Team Overview -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex align-items-center gap-2 py-3">
+                <i class="bi bi-diagram-2 text-gold"></i>
+                <span class="fw-semibold" style="font-size:0.85rem;">Your Team</span>
+                <a href="{% url 'org:org_tree' %}" class="ms-auto" style="font-size:0.75rem;color:var(--crm-gold-dark);text-decoration:none;">View Full Org <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <div class="card-body p-0">
+                <div class="row g-0">
+                    <div class="col-md-6 border-end">
+                        <div class="p-3">
+                            <h6 style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--crm-text-muted);margin-bottom:0.75rem;">
+                                <i class="bi bi-person-badge me-1"></i> Team Leads ({{ sub_team_leads|length }})
+                            </h6>
+                            {% for tl in sub_team_leads %}
+                            <div class="d-flex align-items-center justify-content-between py-2 border-bottom" style="font-size:0.85rem;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:var(--crm-light);font-size:0.65rem;font-weight:600;color:var(--crm-gold-dark);flex-shrink:0;">
+                                        {{ tl.user.get_full_name|default:tl.user.username|make_list|first|upper }}
+                                    </div>
+                                    <a href="{% url 'org:teamlead_detail' tl.pk %}" class="text-decoration-none fw-medium" style="font-size:0.8rem;">{{ tl.user.get_full_name|default:tl.user.username }}</a>
+                                </div>
+                                <span class="text-muted" style="font-size:0.7rem;">{{ tl.user.email }}</span>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted" style="font-size:0.8rem;">No team leads assigned yet.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3">
+                            <h6 style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--crm-text-muted);margin-bottom:0.75rem;">
+                                <i class="bi bi-people me-1"></i> AROs ({{ sub_aros|length }})
+                            </h6>
+                            {% for aro in sub_aros %}
+                            <div class="d-flex align-items-center justify-content-between py-2 border-bottom" style="font-size:0.85rem;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:var(--crm-light);font-size:0.65rem;font-weight:600;color:var(--crm-text-muted);flex-shrink:0;">
+                                        {{ aro.user.get_full_name|default:aro.user.username|make_list|first|upper }}
+                                    </div>
+                                    <a href="{% url 'org:aro_detail' aro.pk %}" class="text-decoration-none fw-medium" style="font-size:0.8rem;">{{ aro.user.get_full_name|default:aro.user.username }}</a>
+                                </div>
+                                <span class="text-muted" style="font-size:0.7rem;">{{ aro.user.email }}</span>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted" style="font-size:0.8rem;">No AROs in your team.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% elif profile and role_code == "TEAM_LEAD" %}
+        <!-- Team Lead: ARO Overview -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex align-items-center gap-2 py-3">
+                <i class="bi bi-people text-gold"></i>
+                <span class="fw-semibold" style="font-size:0.85rem;">Your AROs ({{ sub_aros|length }})</span>
+                <a href="{% url 'org:org_tree' %}" class="ms-auto" style="font-size:0.75rem;color:var(--crm-gold-dark);text-decoration:none;">View Full Org <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--crm-text-muted);">Name</th>
+                                <th style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--crm-text-muted);">Email</th>
+                                <th style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--crm-text-muted);">Phone</th>
+                                <th style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--crm-text-muted);">Department</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for aro in sub_aros %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:var(--crm-light);font-size:0.65rem;font-weight:600;color:var(--crm-text-muted);flex-shrink:0;">
+                                            {{ aro.user.get_full_name|default:aro.user.username|make_list|first|upper }}
+                                        </div>
+                                        <a href="{% url 'org:aro_detail' aro.pk %}" class="text-decoration-none fw-medium" style="font-size:0.8rem;">{{ aro.user.get_full_name|default:aro.user.username }}</a>
+                                    </div>
+                                </td>
+                                <td style="font-size:0.8rem;">{{ aro.user.email }}</td>
+                                <td style="font-size:0.8rem;">{{ aro.phone|default:"—" }}</td>
+                                <td style="font-size:0.8rem;">{{ aro.department|default:"—" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted py-4" style="font-size:0.85rem;">No AROs assigned to you yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% elif profile and role_code == "ARO" or role_code == "CALLER" %}
+        <!-- ARO/Caller: My Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="stat-card mb-0">
+                    <div class="stat-icon gold"><i class="bi bi-people"></i></div>
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value">{{ total_users }}</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-card mb-0">
+                    <div class="stat-icon blue"><i class="bi bi-person-badge"></i></div>
+                    <div class="stat-label">Team Size</div>
+                    <div class="stat-value">{{ team_size }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('passwordCollapse')?.addEventListener('show.bs.collapse', function () {
+    document.getElementById('passwordChevron').style.transform = 'rotate(180deg)';
+});
+document.getElementById('passwordCollapse')?.addEventListener('hide.bs.collapse', function () {
+    document.getElementById('passwordChevron').style.transform = 'rotate(0deg)';
+});
+</script>
+{% endblock %}

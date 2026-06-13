@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load static lead_tags %}
+
+{% block title %}Assignment Rules - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'leads:list' %}">Leads</a></li>
+<li class="breadcrumb-item active">Assignment Rules</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2>Assignment Rules</h2>
+        <p class="page-subtitle">Configure round-robin and auto-assignment rules for your team.</p>
+    </div>
+    <a href="{% url 'leads:assignment_rule_create' %}" class="btn btn-gold btn-sm">
+        <i class="bi bi-plus-lg"></i> New Rule
+    </a>
+</div>
+
+<div class="row g-3">
+    {% for rule in rules %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-medium"><i class="bi bi-diagram-3 me-1 text-gold"></i> {{ rule.name }}</span>
+                {% if rule.is_active %}
+                <span class="badge bg-success">Active</span>
+                {% else %}
+                <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+            </div>
+            <div class="card-body" style="font-size:0.85rem;">
+                <dl class="row mb-0">
+                    <dt class="col-6">Campaign</dt>
+                    <dd class="col-6">{{ rule.campaign.name|default:"All" }}</dd>
+                    <dt class="col-6">Max/Caller</dt>
+                    <dd class="col-6">{{ rule.max_active_leads }}</dd>
+                    <dt class="col-6">Callers</dt>
+                    <dd class="col-6">{{ rule.caller_count|default:"0" }}</dd>
+                    <dt class="col-6">Created</dt>
+                    <dd class="col-6">{{ rule.created_at|date:"d M Y" }}</dd>
+                </dl>
+            </div>
+            <div class="card-footer d-flex gap-1 justify-content-end">
+                <a href="{% url 'leads:assignment_rule_edit' pk=rule.id %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                <form method="post" action="{% url 'leads:assignment_rule_delete' pk=rule.id %}" onsubmit="return confirm('Delete this rule?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="bi bi-diagram-3 text-muted" style="font-size:3rem;"></i>
+            <p class="mt-2 text-muted">No assignment rules configured.</p>
+            <a href="{% url 'leads:assignment_rule_create' %}" class="btn btn-gold">
+                <i class="bi bi-plus-lg"></i> Create Rule
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

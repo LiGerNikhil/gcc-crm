@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ image.file_name }} - Image Viewer - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'imager:gallery' %}">Images</a></li>
+<li class="breadcrumb-item active">{{ image.file_name|truncatechars:30 }}</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.image-viewer-container {
+    position: relative;
+    width: 100%;
+    background: #1a1a2e;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    user-select: none;
+}
+.image-viewer-container img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    transition: transform 0.15s ease;
+    cursor: grab;
+}
+.image-viewer-container img:active {
+    cursor: grabbing;
+}
+.image-viewer-container img.dragging {
+    cursor: grabbing;
+}
+.image-info-panel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    pointer-events: none;
+}
+.image-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    z-index: 5;
+}
+.image-nav-btn:hover { background: rgba(0,0,0,0.85); }
+.image-nav-prev { left: 12px; }
+.image-nav-next { right: 12px; }
+.viewer-toolbar {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 8px 12px;
+    background: #1a1a2e;
+    border-radius: 8px;
+}
+.viewer-toolbar .btn {
+    border-color: rgba(255,255,255,0.15);
+    color: #ccc;
+    font-size: 0.85rem;
+}
+.viewer-toolbar .btn:hover {
+    border-color: var(--crm-gold, #c8a44e);
+    color: var(--crm-gold, #c8a44e);
+    background: rgba(200,164,78,0.1);
+}
+.viewer-toolbar .zoom-level {
+    color: #aaa;
+    font-size: 0.8rem;
+    min-width: 50px;
+    text-align: center;
+}
+.assign-card .form-control, .assign-card .form-select {
+    font-size: 0.85rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-9">
+        <div class="image-viewer-container" id="viewerContainer">
+            <img src="{{ MEDIA_URL }}{{ image.file_path }}" alt="{{ image.file_name }}" id="viewerImage"
+                 data-zoom="1" data-rotate="0" data-pan-x="0" data-pan-y="0"
+                 style="transform: scale(1) rotate(0deg) translate(0px, 0px);">
+
+            <div class="image-info-panel">
+                <strong>{{ image.file_name }}</strong>
+                {% if image.width and image.height %}
+                &middot; {{ image.width }}&times;{{ image.height }}
+                {% endif %}
+                {% if image.file_size %}
+                &middot; {{ image.file_size|filesizeformat }}
+                {% endif %}
+            </div>
+
+            {% if prev_image %}
+            <a href="{% url 'imager:viewer' pk=prev_image.id %}" class="image-nav-btn image-nav-prev" title="Previous">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            {% endif %}
+            {% if next_image %}
+            <a href="{% url 'imager:viewer' pk=next_image.id %}" class="image-nav-btn image-nav-next" title="Next">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="viewer-toolbar mt-2 d-flex flex-wrap justify-content-center">
+            <button class="btn btn-sm btn-outline-light" id="zoomIn" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
+            <button class="btn btn-sm btn-outline-light" id="zoomOut" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
+            <button class="btn btn-sm btn-outline-light" id="zoomReset" title="Reset Zoom"><i class="bi bi-arrows-angle-expand"></i></button>
+            <span class="zoom-level" id="zoomLevel">100%</span>
+            <div class="vr mx-1 opacity-25"></div>
+            <button class="btn btn-sm btn-outline-light" id="rotateLeft" title="Rotate Left"><i class="bi bi-arrow-counterclockwise"></i></button>
+            <button class="btn btn-sm btn-outline-light" id="rotateRight" title="Rotate Right"><i class="bi bi-arrow-clockwise"></i></button>
+            <div class="vr mx-1 opacity-25"></div>
+            <button class="btn btn-sm btn-outline-light" id="fullscreenBtn" title="Fullscreen"><i class="bi bi-fullscreen"></i></button>
+            <a href="{% url 'imager:download' pk=image.id %}" class="btn btn-sm btn-outline-light" title="Download"><i class="bi bi-download"></i></a>
+            <button class="btn btn-sm btn-outline-light" id="fitToScreen" title="Fit to Screen"><i class="bi bi-aspect-ratio"></i></button>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card assign-card">
+            <div class="card-header"><i class="bi bi-info-circle me-1"></i> Image Details</div>
+            <div class="card-body" style="font-size:0.85rem;">
+                <dl class="row mb-0">
+                    <dt class="col-5">Filename</dt>
+                    <dd class="col-7 text-truncate">{{ image.file_name }}</dd>
+                    <dt class="col-5">Type</dt>
+                    <dd class="col-7">{{ image.get_image_type_display }}</dd>
+                    <dt class="col-5">Format</dt>
+                    <dd class="col-7">{{ image.image_format }}</dd>
+                    <dt class="col-5">Dimensions</dt>
+                    <dd class="col-7">{% if image.width %}{{ image.width }} &times; {{ image.height }}{% else %}--{% endif %}</dd>
+                    <dt class="col-5">Size</dt>
+                    <dd class="col-7">{{ image.file_size|filesizeformat|default:"--" }}</dd>
+                    <dt class="col-5">Uploaded</dt>
+                    <dd class="col-7">{{ image.created_at|date:"d M Y H:i" }}</dd>
+                    <dt class="col-5">Uploaded By</dt>
+                    <dd class="col-7">{{ image.uploaded_by.get_full_name|default:image.uploaded_by.username|default:"--" }}</dd>
+                    {% if image.batch %}
+                    <dt class="col-5">Batch</dt>
+                    <dd class="col-7">{{ image.batch.name }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <div class="card assign-card mt-3">
+            <div class="card-header"><i class="bi bi-link-45deg me-1"></i> Lead Association</div>
+            <div class="card-body">
+                {% if image.lead %}
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-person-check text-success fs-5"></i>
+                    <div>
+                        <strong>{{ image.lead.customer_name }}</strong><br>
+                        <small class="text-muted">{{ image.lead.lead_number }}</small>
+                    </div>
+                </div>
+                <a href="{% url 'leads:detail' pk=image.lead.id %}" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-box-arrow-up-right"></i> View Lead
+                </a>
+                {% else %}
+                <p class="text-warning mb-2"><i class="bi bi-unlink"></i> Not assigned to any lead</p>
+                <form method="post" action="{% url 'imager:batch_assign' pk=image.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="image_ids" value="{{ image.id }}">
+                    <div class="mb-2">
+                        <input type="text" name="lead_search" id="leadSearchInput" class="form-control form-control-sm"
+                               placeholder="Search lead by name or ID...">
+                        <select name="lead_id" class="form-select form-select-sm mt-1" id="leadSelect" required>
+                            <option value="">Select Lead...</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-gold w-100"><i class="bi bi-link-45deg"></i> Assign</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card assign-card mt-3">
+            <div class="card-header"><i class="bi bi-arrow-repeat me-1"></i> Rotate Image</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'imager:rotate' pk=image.id %}">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="degrees" value="90" class="btn btn-sm btn-outline-secondary flex-fill">
+                            <i class="bi bi-arrow-counterclockwise"></i> 90&deg;
+                        </button>
+                        <button type="submit" name="degrees" value="-90" class="btn btn-sm btn-outline-secondary flex-fill">
+                            <i class="bi bi-arrow-clockwise"></i> 90&deg;
+                        </button>
+                        <button type="submit" name="degrees" value="180" class="btn btn-sm btn-outline-secondary flex-fill">
+                            180&deg;
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const img = document.getElementById('viewerImage');
+    const container = document.getElementById('viewerContainer');
+    const zoomLevel = document.getElementById('zoomLevel');
+
+    let zoom = 1;
+    let rotate = 0;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let dragStartX, dragStartY;
+
+    function applyTransform() {
+        img.style.transform = `scale(${zoom}) rotate(${rotate}deg) translate(${panX}px, ${panY}px)`;
+        zoomLevel.textContent = Math.round(zoom * 100) + '%';
+    }
+
+    document.getElementById('zoomIn').addEventListener('click', function() {
+        zoom = Math.min(zoom + 0.25, 5);
+        applyTransform();
+    });
+    document.getElementById('zoomOut').addEventListener('click', function() {
+        zoom = Math.max(zoom - 0.25, 0.1);
+        applyTransform();
+    });
+    document.getElementById('zoomReset').addEventListener('click', function() {
+        zoom = 1; panX = 0; panY = 0;
+        applyTransform();
+    });
+    document.getElementById('rotateLeft').addEventListener('click', function() {
+        rotate -= 90;
+        applyTransform();
+    });
+    document.getElementById('rotateRight').addEventListener('click', function() {
+        rotate += 90;
+        applyTransform();
+    });
+    document.getElementById('fitToScreen').addEventListener('click', function() {
+        zoom = 1; panX = 0; panY = 0;
+        applyTransform();
+    });
+
+    document.getElementById('fullscreenBtn').addEventListener('click', function() {
+        if (!document.fullscreenElement) {
+            container.requestFullscreen().catch(() => {});
+        } else {
+            document.exitFullscreen();
+        }
+    });
+
+    container.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        if (e.deltaY < 0) zoom = Math.min(zoom + 0.1, 5);
+        else zoom = Math.max(zoom - 0.1, 0.1);
+        applyTransform();
+    }, { passive: false });
+
+    img.addEventListener('mousedown', function(e) {
+        if (zoom <= 1) return;
+        isDragging = true;
+        dragStartX = e.clientX - panX;
+        dragStartY = e.clientY - panY;
+        img.classList.add('dragging');
+    });
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        panX = e.clientX - dragStartX;
+        panY = e.clientY - dragStartY;
+        applyTransform();
+    });
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        img.classList.remove('dragging');
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+    });
+})();
+
+const leadSearchInput = document.getElementById('leadSearchInput');
+const leadSelect = document.getElementById('leadSelect');
+if (leadSearchInput) {
+    let debounceTimer;
+    leadSearchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const q = this.value.trim();
+        if (q.length < 2) return;
+        debounceTimer = setTimeout(function() {
+            fetch('/api/leads/?search=' + encodeURIComponent(q) + '&page_size=20')
+                .then(r => r.json())
+                .then(data => {
+                    leadSelect.innerHTML = '<option value="">Select Lead...</option>';
+                    const leads = data.results || data || [];
+                    leads.forEach(lead => {
+                        const opt = document.createElement('option');
+                        opt.value = lead.id;
+                        opt.textContent = lead.customer_name + ' (' + lead.lead_number + ')';
+                        leadSelect.appendChild(opt);
+                    });
+                })
+                .catch(() => {});
+        }, 300);
+    });
+}
+</script>
+{% endblock %}

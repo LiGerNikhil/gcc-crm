@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load static lead_tags %}
+
+{% block title %}Assignment History - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'leads:list' %}">Leads</a></li>
+<li class="breadcrumb-item active">Assignment History</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2>Assignment History</h2>
+        <p class="page-subtitle">Track all lead assignments across the system.</p>
+    </div>
+    <div>
+        <span class="badge bg-info fs-6 me-1">{{ stats.total_active }} Active</span>
+        {% for type_key, count in stats.by_type.items %}
+        <span class="badge bg-secondary fs-6 me-1">{{ type_key }}: {{ count }}</span>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Search by lead name, number, user..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+                <select name="type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    {% for code, label in assignment_type_choices %}
+                    <option value="{{ code }}" {% if active_type == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    {% for code, label in assignment_status_choices %}
+                    <option value="{{ code }}" {% if active_status == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-search"></i> Filter</button>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'leads:assignment_history' %}" class="btn btn-sm btn-outline-secondary w-100"><i class="bi bi-x-circle"></i> Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Lead</th>
+                        <th>Assigned To</th>
+                        <th>Assigned By</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in assignments %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'leads:detail' pk=a.lead.id %}" class="text-decoration-none fw-medium">
+                                {{ a.lead.customer_name|truncatechars:25 }}
+                            </a>
+                            <small class="d-block text-muted">{{ a.lead.lead_number }}</small>
+                        </td>
+                        <td>{{ a.assigned_to.get_full_name|default:a.assigned_to.username|default:"--" }}</td>
+                        <td>{{ a.assigned_by.get_full_name|default:a.assigned_by.username|default:"--" }}</td>
+                        <td>
+                            {% if a.assignment_type == "MANUAL" %}
+                            <span class="badge bg-info"><i class="bi bi-person"></i> Manual</span>
+                            {% elif a.assignment_type == "BULK" %}
+                            <span class="badge bg-primary"><i class="bi bi-layers"></i> Bulk</span>
+                            {% elif a.assignment_type == "AUTO_ROUND_ROBIN" %}
+                            <span class="badge bg-success"><i class="bi bi-arrow-repeat"></i> Round Robin</span>
+                            {% elif a.assignment_type == "REASSIGNMENT" %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-arrow-left-right"></i> Reassign</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if a.assignment_status == "ACTIVE" %}
+                            <span class="badge bg-success">Active</span>
+                            {% elif a.assignment_status == "COMPLETED" %}
+                            <span class="badge bg-secondary">Completed</span>
+                            {% elif a.assignment_status == "TRANSFERRED" %}
+                            <span class="badge bg-warning text-dark">Transferred</span>
+                            {% elif a.assignment_status == "REJECTED" %}
+                            <span class="badge bg-danger">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.85rem;">{{ a.created_at|date:"d M Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'leads:detail' pk=a.lead.id %}" class="btn btn-sm btn-outline-primary py-0 px-1" title="View Lead">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No assignment history found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_status %}&status={{ active_status }}{% endif %}">First</a></li>
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_status %}&status={{ active_status }}{% endif %}">Prev</a></li>
+        {% endif %}
+        <li class="page-item active"><span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_status %}&status={{ active_status }}{% endif %}">Next</a></li>
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if active_type %}&type={{ active_type }}{% endif %}{% if active_status %}&status={{ active_status }}{% endif %}">Last</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

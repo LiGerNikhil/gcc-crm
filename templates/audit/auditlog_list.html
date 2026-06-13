@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Audit Logs{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item active">Audit Logs</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2><i class="bi bi-journal-text text-gold"></i> Audit Logs</h2>
+        <p class="page-subtitle">Enterprise audit trail of all system activity</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small">Search</label>
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Search description, model, user..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Action</label>
+                <select name="action" class="form-select form-select-sm">
+                    <option value="">All Actions</option>
+                    {% for code, label in action_choices %}
+                    <option value="{{ code }}" {% if active_action == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Model</label>
+                <select name="model" class="form-select form-select-sm">
+                    <option value="">All Models</option>
+                    {% for m in model_names %}
+                    <option value="{{ m }}" {% if active_model == m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-gold btn-sm w-100"><i class="bi bi-search"></i> Filter</button>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'audit:log_list' %}" class="btn btn-outline-secondary btn-sm w-100"><i class="bi bi-x-circle"></i> Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list me-2 text-gold"></i> Audit Trail</span>
+        <span class="badge bg-secondary">{{ page_obj.paginator.count }} entries</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Model</th>
+                        <th>Record ID</th>
+                        <th>Description</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td class="text-nowrap small">{{ log.timestamp|date:"d M Y h:i A" }}</td>
+                        <td>{{ log.user.get_full_name|default:log.user.username|default:"—" }}</td>
+                        <td>
+                            {% if log.action == "CREATE" %}<span class="badge bg-success">CREATE</span>
+                            {% elif log.action == "UPDATE" %}<span class="badge bg-primary">UPDATE</span>
+                            {% elif log.action == "DELETE" %}<span class="badge bg-danger">DELETE</span>
+                            {% elif log.action == "LOGIN" %}<span class="badge bg-info">LOGIN</span>
+                            {% elif log.action == "LOGOUT" %}<span class="badge bg-secondary">LOGOUT</span>
+                            {% elif log.action == "ASSIGN" %}<span class="badge bg-warning text-dark">ASSIGN</span>
+                            {% elif log.action == "BULK_ACTION" %}<span class="badge bg-dark">BULK</span>
+                            {% else %}<span class="badge bg-light text-dark">{{ log.action }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ log.model_name }}</td>
+                        <td class="small text-muted">{{ log.record_id|truncatechars:12 }}</td>
+                        <td><a href="{% url 'audit:log_detail' log.id %}" class="text-decoration-none">{{ log.description|truncatechars:60 }}</a></td>
+                        <td class="small text-muted">{{ log.ip_address|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center py-4 text-muted">No audit logs found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="mt-3">
+    <nav>
+        <ul class="pagination pagination-sm justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if active_action %}&action={{ active_action }}{% endif %}{% if active_model %}&model={{ active_model }}{% endif %}">First</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if active_action %}&action={{ active_action }}{% endif %}{% if active_model %}&model={{ active_model }}{% endif %}">Prev</a></li>
+            {% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if active_action %}&action={{ active_action }}{% endif %}{% if active_model %}&model={{ active_model }}{% endif %}">Next</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if active_action %}&action={{ active_action }}{% endif %}{% if active_model %}&model={{ active_model }}{% endif %}">Last</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+{% endblock %}

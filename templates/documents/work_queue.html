@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Work - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item active">My Work</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>{% if role_code == "TEAM_LEAD" %}Team Work Queue{% elif role_code == "ARO" %}My Work{% else %}Work Queue{% endif %}</h2>
+        <p class="page-subtitle">{{ total_assigned }} assigned item{{ total_assigned|pluralize }}</p>
+    </div>
+    <div>
+        <a href="{% url 'documents:batch_list' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-layers"></i> All Batches</a>
+    </div>
+</div>
+
+<!-- Status Filter -->
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-auto">
+                <label class="col-form-label-sm fw-medium me-2">Filter:</label>
+            </div>
+            <div class="col-auto">
+                <select name="status" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    {% for code, label in status_choices %}
+                    <option value="{{ code }}" {% if current_status == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Work Items Table -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if work_items %}
+        <form id="bulkAssignForm" method="post" action="{% url 'documents:workitem_bulk_assign' %}">
+            {% csrf_token %}
+            <input type="hidden" name="work_items" id="bulkWorkItems">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            {% if role_code == "TEAM_LEAD" or role_code == "MANAGER" %}
+                            <th style="width:40px;">
+                                <input type="checkbox" id="selectAll" class="form-check-input">
+                            </th>
+                            {% endif %}
+                            <th>Batch</th>
+                            <th>Item</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Assigned To</th>
+                            <th>Priority</th>
+                            <th>Latest Activity</th>
+                            <th style="width:180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in work_items %}
+                        <tr>
+                            {% if role_code == "TEAM_LEAD" or role_code == "MANAGER" %}
+                            <td>
+                                <input type="checkbox" class="form-check-input work-item-checkbox" value="{{ item.id }}">
+                            </td>
+                            {% endif %}
+                            <td><a href="{% url 'documents:batch_detail' item.batch.id %}" class="text-decoration-none small">{{ item.batch.batch_code }}</a></td>
+                            <td>
+                                <a href="{% url 'documents:workitem_detail' item.id %}" class="text-decoration-none fw-medium">
+                                    {{ item.item_identifier|default:"—" }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if item.batch.upload_type == "PDF" %}
+                                <span class="badge bg-danger" style="font-size:0.65rem;">PDF</span>
+                                {% elif item.batch.upload_type == "IMAGE" %}
+                                <span class="badge bg-success" style="font-size:0.65rem;">IMG</span>
+                                {% elif item.batch.upload_type == "EXCEL" %}
+                                <span class="badge bg-primary" style="font-size:0.65rem;">XLS</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.status == "NEW" %}
+                                <span class="badge-status pending" style="font-size:0.65rem;">New</span>
+                                {% elif item.status == "ASSIGNED" %}
+                                <span class="badge-status" style="font-size:0.65rem;background:#0d6efd;color:#fff;">Assigned</span>
+                                {% elif item.status == "IN_PROGRESS" %}
+                                <span class="badge-status processing" style="font-size:0.65rem;">In Progress</span>
+                                {% elif item.status == "PENDING" %}
+                                <span class="badge-status" style="font-size:0.65rem;background:#6f42c1;color:#fff;">Pending</span>
+                                {% elif item.status == "NEED_CLARIFICATION" %}
+                                <span class="badge-status" style="font-size:0.65rem;background:#fd7e14;color:#fff;">Clarify</span>
+                                {% elif item.status == "COMPLETED" %}
+                                <span class="badge-status completed" style="font-size:0.65rem;">Completed</span>
+                                {% elif item.status == "REJECTED" %}
+                                <span class="badge-status failed" style="font-size:0.65rem;">Rejected</span>
+                                {% elif item.status == "CLOSED" %}
+                                <span class="badge-status" style="font-size:0.65rem;background:#212529;color:#fff;">Closed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.assigned_to %}
+                                <small>{{ item.assigned_to.get_full_name|default:item.assigned_to.username }}</small>
+                                {% else %}
+                                <span class="text-muted small">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.priority == "HIGH" %}
+                                <span class="badge bg-danger" style="font-size:0.6rem;">High</span>
+                                {% elif item.priority == "MEDIUM" %}
+                                <span class="badge bg-warning text-dark" style="font-size:0.6rem;">Med</span>
+                                {% else %}
+                                <span class="badge bg-secondary" style="font-size:0.6rem;">Low</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% with item.notes.all|first as latest_note %}
+                                {% if latest_note %}
+                                <small class="text-muted">
+                                    {% if latest_note.is_feedback %}<i class="bi bi-megaphone text-warning" title="Feedback"></i>{% endif %}
+                                    {{ latest_note.created_at|timesince }} ago
+                                </small>
+                                {% else %}
+                                <span class="text-muted small">—</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a href="{% url 'documents:workitem_detail' item.id %}" class="btn btn-sm btn-outline-gold" title="View & Work">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    {% if role_code == "ARO" or role_code == "CALLER" %}
+                                    <button class="btn btn-sm btn-outline-primary" title="Quick Note"
+                                            onclick="quickNote('{{ item.id }}')">
+                                        <i class="bi bi-chat"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning" title="Submit Feedback"
+                                            onclick="quickFeedback('{{ item.id }}')">
+                                        <i class="bi bi-megaphone"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if role_code == "TEAM_LEAD" or role_code == "MANAGER" %}
+            <!-- Bulk Assign Bar -->
+            <div class="card-footer" id="bulkActions" style="display:none;">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-medium small" id="selectedCount">0 selected</span>
+                    <select class="form-select form-select-sm" id="bulkAssignTo" style="width:auto;" required>
+                        <option value="">-- Distribute To --</option>
+                        {% for u in assignable_users %}
+                        <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }} ({{ u.profile.role.name }})</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-gold btn-sm" onclick="submitBulkAssign()">
+                        <i class="bi bi-send"></i> Assign
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </form>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Previous</a></li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}{% if current_status %}&status={{ current_status }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox" style="font-size:3rem;color:var(--crm-gold);"></i>
+            <p class="text-muted mt-3">No work items assigned yet.</p>
+            <a href="{% url 'documents:batch_list' %}" class="btn btn-gold btn-sm">Browse Batches</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Note Modal -->
+<div class="modal fade" id="quickNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="quickNoteForm">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h6 class="modal-title">Add Note</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea name="content" rows="3" class="form-control" placeholder="Enter your note..." required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-gold btn-sm"><i class="bi bi-check"></i> Add Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Feedback Modal -->
+<div class="modal fade" id="quickFeedbackModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="quickFeedbackForm">
+                {% csrf_token %}
+                <input type="hidden" name="is_feedback" value="1">
+                <div class="modal-header">
+                    <h6 class="modal-title text-warning"><i class="bi bi-megaphone"></i> Submit Feedback</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">Your feedback will be visible to your Team Lead and Manager.</p>
+                    <textarea name="content" rows="4" class="form-control" placeholder="Enter your feedback about this work item..." required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-warning btn-sm"><i class="bi bi-send"></i> Submit Feedback</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Bulk assign logic
+(function() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.work-item-checkbox');
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCount = document.getElementById('selectedCount');
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(cb => cb.checked = this.checked);
+            updateBulkBar();
+        });
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateBulkBar);
+        });
+    }
+
+    function updateBulkBar() {
+        const checked = document.querySelectorAll('.work-item-checkbox:checked');
+        const count = checked.length;
+        if (count > 0) {
+            bulkActions.style.display = 'block';
+            selectedCount.textContent = count + ' selected';
+        } else {
+            bulkActions.style.display = 'none';
+        }
+    }
+})();
+
+function submitBulkAssign() {
+    const checked = document.querySelectorAll('.work-item-checkbox:checked');
+    const ids = Array.from(checked).map(cb => cb.value).join(',');
+    document.getElementById('bulkWorkItems').value = ids;
+    return true;
+}
+
+// Quick note
+function quickNote(itemId) {
+    const form = document.getElementById('quickNoteForm');
+    form.action = '/documents/work-item/' + itemId + '/notes/add/';
+    var modal = new bootstrap.Modal(document.getElementById('quickNoteModal'));
+    modal.show();
+}
+
+// Quick feedback
+function quickFeedback(itemId) {
+    const form = document.getElementById('quickFeedbackForm');
+    form.action = '/documents/work-item/' + itemId + '/notes/add/';
+    var modal = new bootstrap.Modal(document.getElementById('quickFeedbackModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

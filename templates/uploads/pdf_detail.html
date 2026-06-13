@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ pdf_import.file_name }} - PDF Details{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'pdf:list' %}">PDF Imports</a></li>
+<li class="breadcrumb-item active">{{ pdf_import.file_name|truncatechars:30 }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>{{ pdf_import.file_name }}</h2>
+        <p class="page-subtitle">{{ pdf_import.imported_at|date:"d M Y, h:i A" }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'pdf:viewer' pdf_import.id %}" class="btn btn-gold btn-sm"><i class="bi bi-eye"></i> View Pages</a>
+        <a href="{% url 'pdf:download' pdf_import.id %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-download"></i> Download</a>
+    </div>
+</div>
+
+{% if pdf_import.extraction_status == "FAILED" %}
+<div class="alert alert-danger"><i class="bi bi-exclamation-circle"></i> {{ pdf_import.error_message }}</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-file-earmark-pdf"></i></div>
+            <div class="stat-label">File Size</div>
+            <div class="stat-value" style="font-size:1.25rem;">{{ pdf_import.file_size|filesizeformat }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-layers"></i></div>
+            <div class="stat-label">Pages</div>
+            <div class="stat-value" style="font-size:1.25rem;">{{ pdf_import.pages_count|default:"-" }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon gold"><i class="bi bi-tag"></i></div>
+            <div class="stat-label">Campaign</div>
+            <div class="stat-value" style="font-size:1rem;">{{ pdf_import.batch.campaign.name }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="bi bi-box"></i></div>
+            <div class="stat-label">Batch</div>
+            <div class="stat-value" style="font-size:1rem;">{{ pdf_import.batch.batch_number }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-info-circle me-2 text-gold"></i> Import Details</span>
+        <span class="badge
+            {% if pdf_import.extraction_status == 'COMPLETED' %}bg-success
+            {% elif pdf_import.extraction_status == 'FAILED' %}bg-danger
+            {% elif pdf_import.extraction_status == 'PROCESSING' %}bg-warning text-dark
+            {% else %}bg-secondary{% endif %}">
+            {{ pdf_import.get_extraction_status_display }}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 small">
+            <div class="col-md-4"><span class="text-muted">File:</span> {{ pdf_import.file_name }}</div>
+            <div class="col-md-4"><span class="text-muted">Size:</span> {{ pdf_import.file_size|filesizeformat }}</div>
+            <div class="col-md-4"><span class="text-muted">Pages:</span> {{ pdf_import.pages_count|default:"-" }}</div>
+            <div class="col-md-4"><span class="text-muted">Uploaded by:</span> {{ pdf_import.created_by.get_full_name|default:pdf_import.created_by.username }}</div>
+            <div class="col-md-4"><span class="text-muted">Imported at:</span> {{ pdf_import.imported_at|date:"d M Y, h:i A" }}</div>
+            <div class="col-md-4"><span class="text-muted">Processed at:</span> {{ pdf_import.processed_at|date:"d M Y, h:i A"|default:"-" }}</div>
+            <div class="col-md-4"><span class="text-muted">Campaign:</span> {{ pdf_import.batch.campaign.name }}</div>
+            <div class="col-md-4"><span class="text-muted">Batch:</span> {{ pdf_import.batch.batch_number }}</div>
+            <div class="col-md-4"><span class="text-muted">Status:</span> {{ pdf_import.get_extraction_status_display }}</div>
+        </div>
+    </div>
+</div>
+
+{% if pages %}
+<div class="card">
+    <div class="card-header"><span><i class="bi bi-images me-2 text-gold"></i> Page Thumbnails</span></div>
+    <div class="card-body">
+        <div class="row g-2">
+            {% for page in pages %}
+            <div class="col-6 col-md-3 col-lg-2">
+                <a href="{% url 'pdf:viewer' pdf_import.id %}?page={{ page.page_number }}" class="text-decoration-none">
+                    <div class="card h-100">
+                        <div class="card-body p-1 text-center">
+                            <img src="{% url 'pdf:page_thumb' pdf_import.id page.page_number %}"
+                                 class="img-fluid border rounded"
+                                 alt="Page {{ page.page_number }}"
+                                 loading="lazy"
+                                 style="max-height:150px;">
+                            <small class="d-block mt-1 text-muted">Page {{ page.page_number }}</small>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

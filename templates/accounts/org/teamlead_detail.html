@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ team_lead.user.get_full_name|default:team_lead.user.username }} - Team Lead{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'org:org_tree' %}">Organization</a></li>
+<li class="breadcrumb-item active">{{ team_lead.user.get_full_name|default:team_lead.user.username }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2><i class="bi bi-person text-gold me-2"></i> {{ team_lead.user.get_full_name|default:team_lead.user.username }}</h2>
+        <p class="page-subtitle">
+            {{ team_lead.department|default:"No Department" }} — Team Lead
+            {% if team_lead.manager %}
+            <span class="text-muted">| Manager: <a href="{% url 'org:manager_detail' team_lead.manager.pk %}" class="text-decoration-none">{{ team_lead.manager.user.get_full_name|default:team_lead.manager.user.username }}</a></span>
+            {% endif %}
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'org:aro_create' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-person-plus"></i> Add ARO</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">AROs</div>
+            <div class="stat-value">{{ aros|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Assigned Leads</div>
+            <div class="stat-value">{{ assigned_leads_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-label">Contact</div>
+            <div class="stat-value" style="font-size:1rem;">{{ team_lead.user.email }} / {{ team_lead.phone|default:"—" }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="bi bi-people me-2 text-gold"></i> AROs under {{ team_lead.user.get_full_name|default:team_lead.user.username }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead>
+                <tr><th>Name</th><th>Email</th><th>Phone</th><th>Department</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for aro in aros %}
+                <tr>
+                    <td><a href="{% url 'org:aro_detail' aro.pk %}" class="text-decoration-none fw-medium">{{ aro.user.get_full_name|default:aro.user.username }}</a></td>
+                    <td>{{ aro.user.email }}</td>
+                    <td>{{ aro.phone|default:"—" }}</td>
+                    <td>{{ aro.department|default:"—" }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'org:aro_edit' aro.pk %}" class="btn btn-sm btn-outline-gold"><i class="bi bi-pencil"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">No AROs assigned yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

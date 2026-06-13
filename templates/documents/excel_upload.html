@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload Excel - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'documents:batch_list' %}">Upload Batches</a></li>
+<li class="breadcrumb-item active">Upload Excel</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Excel Upload</h2>
+        <p class="page-subtitle">Upload an XLSX file. Each row becomes a work item with original data preserved.</p>
+    </div>
+    <div>
+        <a href="{% url 'documents:batch_list' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-clock-history"></i> Upload History</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-file-earmark-excel me-2 text-success"></i> Upload Excel File</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="upload-zone mb-4" id="excelUploadZone" onclick="document.getElementById('fileInput').click()">
+                        <div class="upload-icon"><i class="bi bi-file-earmark-excel"></i></div>
+                        <h6 id="uploadText">Drop Excel file here or click to browse</h6>
+                        <p>Supports .xlsx, .xls, .csv files up to 100MB</p>
+                        <input type="file" name="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden required>
+                        {% if form.file.errors %}<div class="text-danger small mt-2">{{ form.file.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">{{ form.notes.label }}</label>
+                            {{ form.notes }}
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span style="font-size:0.8rem;color:var(--crm-text-muted);">
+                            <i class="bi bi-info-circle me-1"></i> Each row becomes a separate work item
+                        </span>
+                        <button type="submit" class="btn btn-gold" id="uploadBtn">
+                            <i class="bi bi-cloud-upload"></i> Upload & Process
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-info-circle me-2"></i> How It Works</div>
+            <div class="card-body" style="font-size:0.85rem;">
+                <ol class="mb-0" style="padding-left:1rem;">
+                    <li class="mb-2">Upload an XLSX file</li>
+                    <li class="mb-2">System reads each data row</li>
+                    <li class="mb-2">Each row becomes a work item</li>
+                    <li class="mb-2">Original row data preserved as JSON</li>
+                    <li>Assign work items for review & processing</li>
+                </ol>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><i class="bi bi-shield-check me-2 text-success"></i> Requirements</div>
+            <div class="card-body" style="font-size:0.8rem;">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>First row must be column headers</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>Empty rows are skipped automatically</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>Max file size: 100MB</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>Supports .xlsx, .xls, .csv</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var fileInput = document.getElementById('fileInput');
+    var uploadText = document.getElementById('uploadText');
+    var uploadZone = document.getElementById('excelUploadZone');
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files.length > 0) {
+            uploadText.innerHTML = '<i class="bi bi-check-circle text-success"></i> ' + fileInput.files[0].name;
+        }
+    });
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+    uploadZone.addEventListener('dragleave', function() {
+        uploadZone.classList.remove('dragover');
+    });
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            uploadText.innerHTML = '<i class="bi bi-check-circle text-success"></i> ' + e.dataTransfer.files[0].name;
+        }
+    });
+});
+</script>
+{% endblock %}

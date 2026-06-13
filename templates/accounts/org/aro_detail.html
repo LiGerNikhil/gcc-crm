@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ aro.user.get_full_name|default:aro.user.username }} - ARO{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'org:org_tree' %}">Organization</a></li>
+<li class="breadcrumb-item active">{{ aro.user.get_full_name|default:aro.user.username }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2><i class="bi bi-person-circle text-gold me-2"></i> {{ aro.user.get_full_name|default:aro.user.username }}</h2>
+        <p class="page-subtitle">
+            {{ aro.department|default:"No Department" }} — ARO (Agent)
+            {% if aro.manager %}
+            <span class="text-muted">| Team Lead: <a href="{% url 'org:teamlead_detail' aro.manager.pk %}" class="text-decoration-none">{{ aro.manager.user.get_full_name|default:aro.manager.user.username }}</a></span>
+            {% endif %}
+        </p>
+    </div>
+    <div>
+        <a href="{% url 'org:aro_edit' aro.pk %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Assigned Leads</div>
+            <div class="stat-value">{{ assigned_leads_count }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" style="font-size:1.25rem;">
+                {% if aro.user.is_active %}<span class="text-success">Active</span>{% else %}<span class="text-danger">Inactive</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-label">Contact</div>
+            <div class="stat-value" style="font-size:1rem;">{{ aro.user.email }} / {{ aro.phone|default:"—" }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="bi bi-list-task me-2 text-gold"></i> Recent Assigned Leads</span>
+        <a href="{% url 'leads:list' %}?assigned_to={{ aro.user.id }}" class="text-decoration-none" style="font-size:0.8rem;color:var(--crm-gold-dark);">View All</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead>
+                <tr><th>Lead #</th><th>Customer</th><th>Status</th><th>Amount</th><th>Created</th></tr>
+            </thead>
+            <tbody>
+                {% for lead in assigned_leads %}
+                <tr>
+                    <td><a href="{% url 'leads:detail' lead.pk %}" class="text-decoration-none">{{ lead.lead_number }}</a></td>
+                    <td>{{ lead.customer_name }}</td>
+                    <td><span class="badge-status {{ lead.lead_status|lower }}">{{ lead.get_lead_status_display }}</span></td>
+                    <td>{% if lead.loan_amount %}₹{{ lead.loan_amount|floatformat:0 }}{% else %}—{% endif %}</td>
+                    <td style="font-size:0.8rem;">{{ lead.created_at|date:"d M Y" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">No leads assigned yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

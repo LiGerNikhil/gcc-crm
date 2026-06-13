@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Batches - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item active">Batches</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Import Batches</h2>
+        <p class="page-subtitle">Track and manage all data import batches.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-gold btn-sm"><i class="bi bi-file-earmark-pdf"></i> PDF Upload</button>
+        <button class="btn btn-outline-gold btn-sm"><i class="bi bi-file-earmark-excel"></i> Excel Upload</button>
+        <button class="btn btn-gold btn-sm"><i class="bi bi-plus-lg"></i> New Batch</button>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon blue" style="width:36px;height:36px;font-size:0.9rem;"><i class="bi bi-layers"></i></div>
+            <div class="stat-label">Total Batches</div>
+            <div class="stat-value" style="font-size:1.25rem;">128</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon green" style="width:36px;height:36px;font-size:0.9rem;"><i class="bi bi-check-circle"></i></div>
+            <div class="stat-label">Completed</div>
+            <div class="stat-value" style="font-size:1.25rem;">96</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon orange" style="width:36px;height:36px;font-size:0.9rem;"><i class="bi bi-arrow-repeat"></i></div>
+            <div class="stat-label">Processing</div>
+            <div class="stat-value" style="font-size:1.25rem;">3</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon red" style="width:36px;height:36px;font-size:0.9rem;"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="stat-label">Failed</div>
+            <div class="stat-value" style="font-size:1.25rem;">2</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filters-bar">
+    <div class="row g-2 align-items-end">
+        <div class="col-lg-3 col-md-6">
+            <label class="form-label">Search Batch</label>
+            <input type="text" class="form-control form-control-sm" placeholder="Batch number...">
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label class="form-label">Status</label>
+            <select class="form-select form-select-sm">
+                <option>All Statuses</option>
+                <option>Completed</option>
+                <option>Processing</option>
+                <option>Pending</option>
+                <option>Failed</option>
+                <option>Partial</option>
+            </select>
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label class="form-label">File Type</label>
+            <select class="form-select form-select-sm">
+                <option>All Types</option>
+                <option>Excel</option>
+                <option>PDF</option>
+                <option>CSV</option>
+                <option>Image</option>
+            </select>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <label class="form-label">Date Range</label>
+            <input type="text" class="form-control form-control-sm" placeholder="Select dates...">
+        </div>
+        <div class="col-lg-2 col-md-6 d-flex gap-2">
+            <button class="btn btn-primary btn-sm flex-grow-1"><i class="bi bi-search"></i> Search</button>
+            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-x-circle"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Batches Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Batch #</th>
+                        <th>Campaign</th>
+                        <th>File Type</th>
+                        <th>Records</th>
+                        <th>Processed</th>
+                        <th>Failed</th>
+                        <th>Uploaded By</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="fw-medium" style="font-size:0.8rem;">B-2024-0032</span></td>
+                        <td>HDFC Home Loans</td>
+                        <td><span class="badge bg-light text-dark"><i class="bi bi-file-earmark-excel me-1 text-success"></i>Excel</span></td>
+                        <td>150</td>
+                        <td>148</td>
+                        <td>2</td>
+                        <td>Admin</td>
+                        <td style="font-size:0.8rem;">12 Jun 2024</td>
+                        <td><span class="badge-status completed">Completed</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-light border" title="View Details"><i class="bi bi-eye"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="fw-medium" style="font-size:0.8rem;">B-2024-0031</span></td>
+                        <td>ICICI Personal Loans</td>
+                        <td><span class="badge bg-light text-dark"><i class="bi bi-file-earmark-pdf me-1 text-danger"></i>PDF</span></td>
+                        <td>200</td>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>Admin</td>
+                        <td style="font-size:0.8rem;">12 Jun 2024</td>
+                        <td><span class="badge-status processing">Processing</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-light border" title="View Details"><i class="bi bi-eye"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="fw-medium" style="font-size:0.8rem;">B-2024-0030</span></td>
+                        <td>Axis Business Loans</td>
+                        <td><span class="badge bg-light text-dark"><i class="bi bi-file-earmark-image me-1 text-primary"></i>Image</span></td>
+                        <td>75</td>
+                        <td>52</td>
+                        <td>23</td>
+                        <td>Admin</td>
+                        <td style="font-size:0.8rem;">11 Jun 2024</td>
+                        <td><span class="badge-status failed">Failed</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-light border" title="View Details"><i class="bi bi-eye"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

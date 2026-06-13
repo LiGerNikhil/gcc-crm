@@ -1,0 +1,630 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item active">Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Dashboard</h2>
+        <p class="page-subtitle">Welcome back, {{ user.get_short_name|default:user.username }}! Here's your overview.</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-gold btn-sm me-2" onclick="window.location.reload()"><i class="bi bi-arrow-repeat"></i> Refresh</button>
+    </div>
+</div>
+
+{% if role_code == "TEAM_LEAD" %}
+<!-- ── Team Lead Work Queue Dashboard ── -->
+
+<!-- Quick Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon gold"><i class="bi bi-inbox"></i></div>
+            <div class="stat-label">Team Items</div>
+            <div class="stat-value">{{ tl_total_items }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-person-check"></i></div>
+            <div class="stat-label">Assigned</div>
+            <div class="stat-value">{{ tl_assigned_count }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+            <div class="stat-label">Completed</div>
+            <div class="stat-value">{{ tl_completed_count }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="bi bi-megaphone"></i></div>
+            <div class="stat-label">Feedback</div>
+            <div class="stat-value">{{ tl_feedback_count }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Team Work Items -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-task me-2 text-gold"></i> Team Work Items</span>
+        <a href="{% url 'documents:work_queue' %}" class="btn btn-gold btn-sm"><i class="bi bi-eye"></i> View All</a>
+    </div>
+    <div class="card-body p-0">
+        {% if tl_recent_items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Assigned To</th>
+                        <th>Priority</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in tl_recent_items %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'documents:workitem_detail' item.id %}" class="text-decoration-none fw-medium small">
+                                {{ item.batch.batch_code }}/{{ item.item_identifier|default:"—" }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if item.batch.upload_type == "PDF" %}<span class="badge bg-danger" style="font-size:0.6rem;">PDF</span>
+                            {% elif item.batch.upload_type == "IMAGE" %}<span class="badge bg-success" style="font-size:0.6rem;">IMG</span>
+                            {% elif item.batch.upload_type == "EXCEL" %}<span class="badge bg-primary" style="font-size:0.6rem;">XLS</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.status == "NEW" %}<span class="badge-status pending" style="font-size:0.6rem;">New</span>
+                            {% elif item.status == "ASSIGNED" %}<span class="badge-status" style="font-size:0.6rem;background:#0d6efd;color:#fff;">Assigned</span>
+                            {% elif item.status == "IN_PROGRESS" %}<span class="badge-status processing" style="font-size:0.6rem;">Progress</span>
+                            {% elif item.status == "PENDING" %}<span class="badge-status" style="font-size:0.6rem;background:#6f42c1;color:#fff;">Pending</span>
+                            {% elif item.status == "NEED_CLARIFICATION" %}<span class="badge-status" style="font-size:0.6rem;background:#fd7e14;color:#fff;">Clarify</span>
+                            {% elif item.status == "COMPLETED" %}<span class="badge-status completed" style="font-size:0.6rem;">Done</span>
+                            {% elif item.status == "REJECTED" %}<span class="badge-status failed" style="font-size:0.6rem;">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ item.assigned_to.get_full_name|default:item.assigned_to.username|default:"—" }}</small></td>
+                        <td>
+                            {% if item.priority == "HIGH" %}<span class="badge bg-danger" style="font-size:0.6rem;">High</span>
+                            {% elif item.priority == "MEDIUM" %}<span class="badge bg-warning text-dark" style="font-size:0.6rem;">Med</span>
+                            {% else %}<span class="badge bg-secondary" style="font-size:0.6rem;">Low</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'documents:workitem_detail' item.id %}" class="btn btn-sm btn-outline-gold" title="View"><i class="bi bi-eye"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="bi bi-inbox" style="font-size:2rem;color:var(--crm-gold);"></i>
+            <p class="text-muted small mt-2">No work items assigned to your team yet.</p>
+            <a href="{% url 'documents:batch_list' %}" class="btn btn-gold btn-sm">Browse Batches</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% elif role_code == "ARO" or role_code == "CALLER" %}
+<!-- ── ARO / CALLER Work Queue Dashboard ── -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-check me-2 text-gold"></i> My Work Items</span>
+        <a href="{% url 'documents:work_queue' %}" class="btn btn-gold btn-sm"><i class="bi bi-eye"></i> View All</a>
+    </div>
+    <div class="card-body p-0">
+        {% if aro_recent_items %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in aro_recent_items %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'documents:workitem_detail' item.id %}" class="text-decoration-none fw-medium small">
+                                {{ item.batch.batch_code }}/{{ item.item_identifier|default:"—" }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if item.batch.upload_type == "PDF" %}<span class="badge bg-danger" style="font-size:0.6rem;">PDF</span>
+                            {% elif item.batch.upload_type == "IMAGE" %}<span class="badge bg-success" style="font-size:0.6rem;">IMG</span>
+                            {% elif item.batch.upload_type == "EXCEL" %}<span class="badge bg-primary" style="font-size:0.6rem;">XLS</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.status == "NEW" %}<span class="badge-status pending" style="font-size:0.6rem;">New</span>
+                            {% elif item.status == "ASSIGNED" %}<span class="badge-status" style="font-size:0.6rem;background:#0d6efd;color:#fff;">Assigned</span>
+                            {% elif item.status == "IN_PROGRESS" %}<span class="badge-status processing" style="font-size:0.6rem;">Progress</span>
+                            {% elif item.status == "PENDING" %}<span class="badge-status" style="font-size:0.6rem;background:#6f42c1;color:#fff;">Pending</span>
+                            {% elif item.status == "NEED_CLARIFICATION" %}<span class="badge-status" style="font-size:0.6rem;background:#fd7e14;color:#fff;">Clarify</span>
+                            {% elif item.status == "COMPLETED" %}<span class="badge-status completed" style="font-size:0.6rem;">Done</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.priority == "HIGH" %}<span class="badge bg-danger" style="font-size:0.6rem;">High</span>
+                            {% elif item.priority == "MEDIUM" %}<span class="badge bg-warning text-dark" style="font-size:0.6rem;">Med</span>
+                            {% else %}<span class="badge bg-secondary" style="font-size:0.6rem;">Low</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'documents:workitem_detail' item.id %}" class="btn btn-sm btn-outline-gold" title="View & Work"><i class="bi bi-eye"></i></a>
+                            <a href="{% url 'documents:workitem_detail' item.id %}#addNoteSection" class="btn btn-sm btn-outline-primary" title="Add Note"><i class="bi bi-chat"></i></a>
+                            <a href="{% url 'documents:workitem_detail' item.id %}" class="btn btn-sm btn-outline-warning" title="Submit Feedback"><i class="bi bi-megaphone"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="bi bi-inbox" style="font-size:2rem;color:var(--crm-gold);"></i>
+            <p class="text-muted small mt-2">No work items assigned to you yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% elif role_code == "MANAGER" %}
+<!-- ── Manager Dashboard ── -->
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon gold"><i class="bi bi-people"></i></div>
+            <div class="stat-label">Total Leads</div>
+            <div class="stat-value">{{ kpi.total_leads }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-calendar-check"></i></div>
+            <div class="stat-label">Today's Leads</div>
+            <div class="stat-value">{{ kpi.leads_today }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-megaphone"></i></div>
+            <div class="stat-label">Active Campaigns</div>
+            <div class="stat-value">{{ kpi.active_campaigns }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="bi bi-clock-history"></i></div>
+            <div class="stat-label">Pending Follow-ups</div>
+            <div class="stat-value">{{ kpi.pending_followups }}</div>
+        </div>
+    </div>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="bi bi-hand-thumbs-up"></i></div>
+            <div class="stat-label">Interested Leads</div>
+            <div class="stat-value">{{ kpi.interested_leads }}</div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-check-circle"></i></div>
+            <div class="stat-label">Approved Leads</div>
+            <div class="stat-value">{{ kpi.approved_leads }}</div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="bi bi-cash-coin"></i></div>
+            <div class="stat-label">Disbursed Leads</div>
+            <div class="stat-value">{{ kpi.disbursed_leads }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-7">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-graph-up me-2 text-gold"></i> Daily Leads <span class="text-muted" style="font-size:0.75rem;font-weight:400;">(Last 30 Days)</span></span>
+            </div>
+            <div class="card-body">
+                <canvas id="dailyLeadsChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="card h-100">
+            <div class="card-header">
+                <span><i class="bi bi-funnel me-2 text-gold"></i> Conversion Funnel</span>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="funnelChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-bar-chart me-2 text-gold"></i> Source Performance</span>
+            </div>
+            <div class="card-body">
+                <canvas id="sourceChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-person-badge me-2 text-gold"></i> Employee Performance <span class="text-muted" style="font-size:0.75rem;font-weight:400;">(Today)</span></span>
+            </div>
+            <div class="card-body">
+                <canvas id="employeeChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manager Team Overview -->
+<div class="card mb-4">
+    <div class="card-header">
+        <span><i class="bi bi-diagram-2 me-2 text-gold"></i> Your Team Overview</span>
+        <a href="{% url 'org:org_tree' %}" class="text-decoration-none" style="font-size:0.8rem;color:var(--crm-gold-dark);">View Organization</a>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <h6 style="font-size:0.8rem;text-transform:uppercase;color:var(--crm-text-muted);letter-spacing:0.5px;margin-bottom:0.75rem;">Team Leads ({{ sub_team_leads|length }})</h6>
+                {% for tl in sub_team_leads %}
+                <div class="d-flex align-items-center justify-content-between py-1 border-bottom" style="font-size:0.85rem;">
+                    <span><a href="{% url 'org:teamlead_detail' tl.pk %}" class="text-decoration-none">{{ tl.user.get_full_name|default:tl.user.username }}</a></span>
+                    <span class="text-muted">{{ tl.user.email }}</span>
+                </div>
+                {% empty %}
+                <p class="text-muted" style="font-size:0.85rem;">No team leads assigned.</p>
+                {% endfor %}
+            </div>
+            <div class="col-md-6">
+                <h6 style="font-size:0.8rem;text-transform:uppercase;color:var(--crm-text-muted);letter-spacing:0.5px;margin-bottom:0.75rem;">AROs ({{ sub_aros|length }})</h6>
+                {% for aro in sub_aros %}
+                <div class="d-flex align-items-center justify-content-between py-1 border-bottom" style="font-size:0.85rem;">
+                    <span><a href="{% url 'org:aro_detail' aro.pk %}" class="text-decoration-none">{{ aro.user.get_full_name|default:aro.user.username }}</a></span>
+                    <span class="text-muted">{{ aro.user.email }}</span>
+                </div>
+                {% empty %}
+                <p class="text-muted" style="font-size:0.85rem;">No AROs in your team.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Link to Documents Work Queue -->
+<div class="mb-3 text-end">
+    <a href="{% url 'documents:work_queue' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-list-task"></i> View Document Work Queue</a>
+</div>
+
+{% elif role_code == "SUPER_ADMIN" %}
+<!-- ── Super Admin Dashboard ── -->
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon gold"><i class="bi bi-people"></i></div>
+            <div class="stat-label">Total Leads</div>
+            <div class="stat-value">{{ kpi.total_leads }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-calendar-check"></i></div>
+            <div class="stat-label">Today's Leads</div>
+            <div class="stat-value">{{ kpi.leads_today }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-megaphone"></i></div>
+            <div class="stat-label">Active Campaigns</div>
+            <div class="stat-value">{{ kpi.active_campaigns }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="bi bi-clock-history"></i></div>
+            <div class="stat-label">Pending Follow-ups</div>
+            <div class="stat-value">{{ kpi.pending_followups }}</div>
+        </div>
+    </div>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="bi bi-hand-thumbs-up"></i></div>
+            <div class="stat-label">Interested Leads</div>
+            <div class="stat-value">{{ kpi.interested_leads }}</div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-check-circle"></i></div>
+            <div class="stat-label">Approved Leads</div>
+            <div class="stat-value">{{ kpi.approved_leads }}</div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="bi bi-cash-coin"></i></div>
+            <div class="stat-label">Disbursed Leads</div>
+            <div class="stat-value">{{ kpi.disbursed_leads }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-7">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-graph-up me-2 text-gold"></i> Daily Leads <span class="text-muted" style="font-size:0.75rem;font-weight:400;">(Last 30 Days)</span></span>
+            </div>
+            <div class="card-body">
+                <canvas id="dailyLeadsChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="card h-100">
+            <div class="card-header">
+                <span><i class="bi bi-funnel me-2 text-gold"></i> Conversion Funnel</span>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="funnelChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-bar-chart me-2 text-gold"></i> Source Performance</span>
+            </div>
+            <div class="card-body">
+                <canvas id="sourceChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-person-badge me-2 text-gold"></i> Employee Performance <span class="text-muted" style="font-size:0.75rem;font-weight:400;">(Today)</span></span>
+            </div>
+            <div class="card-body">
+                <canvas id="employeeChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Link to Documents Work Queue -->
+<div class="mb-3 text-end">
+    <a href="{% url 'documents:work_queue' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-list-task"></i> View Document Work Queue</a>
+</div>
+
+{% else %}
+<!-- ── Other roles (DATA_ENTRY) minimal cards ── -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon gold"><i class="bi bi-people"></i></div>
+            <div class="stat-label">Total Users</div>
+            <div class="stat-value">{{ total_users }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-person-badge"></i></div>
+            <div class="stat-label">Team Size</div>
+            <div class="stat-value">{{ team_size }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-shield-check"></i></div>
+            <div class="stat-label">Your Role</div>
+            <div class="stat-value" style="font-size:1.25rem;">{{ role_code|default:"N/A" }}</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="bi bi-person-circle"></i></div>
+            <div class="stat-label">Profile</div>
+            <div class="stat-value" style="font-size:1.25rem;">{{ user.get_full_name|default:user.username }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if role_code == "SUPER_ADMIN" or role_code == "MANAGER" %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const COLORS = {
+        blue: 'rgba(59, 130, 246, ',
+        gold: 'rgba(200, 164, 78, ',
+        green: 'rgba(16, 185, 129, ',
+        red: 'rgba(239, 68, 68, ',
+        purple: 'rgba(139, 92, 246, ',
+        orange: 'rgba(245, 158, 11, ',
+        teal: 'rgba(20, 184, 166, ',
+        pink: 'rgba(236, 72, 153, ',
+    };
+
+    Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+    Chart.defaults.font.size = 11;
+
+    // 1. Daily Leads Line
+    new Chart(document.getElementById('dailyLeadsChart'), {
+        type: 'line',
+        data: {
+            labels: {{ daily_leads.labels|safe }},
+            datasets: [{
+                label: 'Leads',
+                data: {{ daily_leads.values|safe }},
+                borderColor: COLORS.gold + '1)',
+                backgroundColor: COLORS.gold + '0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2,
+                pointHoverRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } },
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 15 } }
+            }
+        }
+    });
+
+    // 2. Conversion Funnel Doughnut
+    new Chart(document.getElementById('funnelChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ lead_metrics.labels|safe }},
+            datasets: [{
+                data: {{ lead_metrics.values|safe }},
+                backgroundColor: [
+                    COLORS.blue + '0.8)',
+                    COLORS.orange + '0.8)',
+                    COLORS.gold + '0.8)',
+                    COLORS.green + '0.8)',
+                    COLORS.red + '0.8)',
+                ],
+                borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { padding: 12, usePointStyle: true, pointStyle: 'circle' }
+                }
+            }
+        }
+    });
+
+    // 3. Source Performance Bar
+    new Chart(document.getElementById('sourceChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ source_stats.labels|safe }},
+            datasets: [{
+                label: 'Leads',
+                data: {{ source_stats.values|safe }},
+                backgroundColor: [
+                    COLORS.blue + '0.7)',
+                    COLORS.gold + '0.7)',
+                    COLORS.green + '0.7)',
+                    COLORS.purple + '0.7)',
+                    COLORS.orange + '0.7)',
+                ],
+                borderRadius: 4,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 4. Employee Performance Grouped Bar
+    new Chart(document.getElementById('employeeChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ employee_metrics.labels|safe }},
+            datasets: [
+                {
+                    label: 'Calls',
+                    data: {{ employee_metrics.calls|safe }},
+                    backgroundColor: COLORS.blue + '0.7)',
+                    borderRadius: 3,
+                },
+                {
+                    label: 'Follow-ups',
+                    data: {{ employee_metrics.followups|safe }},
+                    backgroundColor: COLORS.gold + '0.7)',
+                    borderRadius: 3,
+                },
+                {
+                    label: 'Conversions',
+                    data: {{ employee_metrics.conversions|safe }},
+                    backgroundColor: COLORS.green + '0.7)',
+                    borderRadius: 3,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { padding: 8, usePointStyle: true, boxWidth: 8, font: { size: 10 } }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

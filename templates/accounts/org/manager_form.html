@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if is_create %}Create Manager{% else %}Edit Manager{% endif %} - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'org:org_tree' %}">Organization</a></li>
+<li class="breadcrumb-item active">{% if is_create %}Create Manager{% else %}Edit Manager{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>{% if is_create %}Create New Manager{% else %}Edit Manager{% endif %}</h2>
+        <p class="page-subtitle">{% if is_create %}Add a new manager to the organization.{% else %}Update manager details.{% endif %}</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-8 col-lg-10">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-person-badge me-2 text-gold"></i> Manager Information</span>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.username.label }}</label>
+                            {{ form.username }}
+                            {% if form.username.errors %}<div class="text-danger" style="font-size:0.75rem;">{{ form.username.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.email.label }}</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}<div class="text-danger" style="font-size:0.75rem;">{{ form.email.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.first_name.label }}</label>
+                            {{ form.first_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.last_name.label }}</label>
+                            {{ form.last_name }}
+                        </div>
+                        {% if is_create %}
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.password1.label }}</label>
+                            {{ form.password1 }}
+                            {% if form.password1.errors %}<div class="text-danger" style="font-size:0.75rem;">{{ form.password1.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.password2.label }}</label>
+                            {{ form.password2 }}
+                            {% if form.password2.errors %}<div class="text-danger" style="font-size:0.75rem;">{{ form.password2.errors.0 }}</div>{% endif %}
+                        </div>
+                        {% endif %}
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.phone.label }}</label>
+                            {{ form.phone }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.department.label }}</label>
+                            {{ form.department }}
+                        </div>
+                        {% if not is_create %}
+                        <div class="col-md-6">
+                            <div class="form-check mt-3">
+                                {{ form.is_active }}
+                                <label class="form-check-label">{{ form.is_active.label }}</label>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn btn-gold">
+                            <i class="bi bi-check-lg"></i> {% if is_create %}Create Manager{% else %}Save Changes{% endif %}
+                        </button>
+                        <a href="{% url 'org:org_tree' %}" class="btn btn-outline-gold">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

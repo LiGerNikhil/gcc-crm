@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% load static lead_tags %}
+
+{% block title %}{{ lead.customer_name }} - Lead Details{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'leads:list' %}">Leads</a></li>
+<li class="breadcrumb-item active">{{ lead.lead_number }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>{{ lead.customer_name }}</h2>
+        <p class="page-subtitle">{{ lead.lead_number }} &middot; {{ lead.get_loan_type_display|default:"N/A" }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'leads:edit' lead.id %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+        {% if user_role_code == "SUPER_ADMIN" or user_role_code == "TEAM_LEAD" %}
+        <form method="post" action="{% url 'leads:delete' lead.id %}" onsubmit="return confirm('Delete this lead?')" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Delete</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="card-header"><span><i class="bi bi-person me-2 text-gold"></i> Lead Information</span></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Customer Name</label>
+                        <div class="fw-medium">{{ lead.customer_name }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Lead Number</label>
+                        <div class="fw-medium">{{ lead.lead_number }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Phone</label>
+                        <div>{{ lead.phone }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Email</label>
+                        <div>{{ lead.email|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">PAN Number</label>
+                        <div>{{ lead.pan_number|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Lead Status</label>
+                        <div>{{ lead.lead_status|status_badge }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Priority</label>
+                        <div>{{ lead.priority|priority_badge }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Loan Type</label>
+                        <div>{{ lead.get_loan_type_display|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Loan Amount</label>
+                        <div class="fw-medium">{{ lead.loan_amount|currency|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Property Value</label>
+                        <div>{{ lead.property_value|currency|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Employment Type</label>
+                        <div>{{ lead.get_employment_type_display|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Source</label>
+                        <div>{{ lead.batch.campaign.bank_source.name|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Campaign</label>
+                        <div>{{ lead.batch.campaign.name|default:"-" }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted small">Batch</label>
+                        <div>{{ lead.batch.batch_number|default:"-" }}</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-muted small">Address</label>
+                        <div>{{ lead.address|linebreaksbr }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">City</label>
+                        <div>{{ lead.city }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">State</label>
+                        <div>{{ lead.state }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small">Pincode</label>
+                        <div>{{ lead.pincode|default:"-" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-sticky me-2 text-gold"></i> Notes</span>
+                <button class="btn btn-sm btn-outline-gold" data-bs-toggle="collapse" data-bs-target="#addNoteForm"><i class="bi bi-plus"></i> Add Note</button>
+            </div>
+            <div class="collapse" id="addNoteForm">
+                <div class="card-body border-bottom bg-light">
+                    <form method="post" action="{% url 'leads:add_note' lead.id %}">
+                        {% csrf_token %}
+                        <div class="mb-2">{{ note_form.note_type }}</div>
+                        <div class="mb-2">{{ note_form.content }}</div>
+                        <button type="submit" class="btn btn-gold btn-sm"><i class="bi bi-check"></i> Save Note</button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% for note in notes %}
+                <div class="border-bottom px-3 py-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div><span class="badge bg-secondary me-2">{{ note.get_note_type_display }}</span><strong>{{ note.created_by.get_full_name|default:note.created_by.username }}</strong></div>
+                        <small class="text-muted">{{ note.created_at|timesince }} ago</small>
+                    </div>
+                    <div class="mt-2" style="font-size:0.9rem;">{{ note.content|linebreaksbr }}</div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted"><i class="bi bi-journal-text"></i> No notes yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calendar-check me-2 text-gold"></i> Follow-ups</span>
+                <button class="btn btn-sm btn-outline-gold" data-bs-toggle="collapse" data-bs-target="#addFollowupForm"><i class="bi bi-plus"></i> Schedule</button>
+            </div>
+            <div class="collapse" id="addFollowupForm">
+                <div class="card-body border-bottom bg-light">
+                    <form method="post" action="{% url 'leads:add_followup' lead.id %}">
+                        {% csrf_token %}
+                        <div class="row g-2">
+                            <div class="col-md-4">{{ followup_form.followup_type }}</div>
+                            <div class="col-md-4">{{ followup_form.scheduled_at }}</div>
+                            <div class="col-md-4">{{ followup_form.assigned_to }}</div>
+                            <div class="col-12">{{ followup_form.notes }}</div>
+                            <div class="col-12"><button type="submit" class="btn btn-gold btn-sm"><i class="bi bi-check"></i> Schedule</button></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% for fup in followups %}
+                <div class="border-bottom px-3 py-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-secondary me-2">{{ fup.get_followup_type_display }}</span>
+                        <strong>{{ fup.scheduled_at|date:"d M Y, h:i A" }}</strong>
+                        {% if fup.assigned_to %}<small class="text-muted ms-2">→ {{ fup.assigned_to.get_full_name|default:fup.assigned_to.username }}</small>{% endif %}
+                        {% if fup.notes %}<div class="mt-1 small text-muted">{{ fup.notes|truncatewords:30 }}</div>{% endif %}
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        {% if fup.status == "PENDING" %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                        <form method="post" action="{% url 'leads:complete_followup' lead.id fup.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check-lg"></i></button>
+                        </form>
+                        {% elif fup.status == "COMPLETED" %}
+                        <span class="badge bg-success">Completed</span>
+                        {% elif fup.status == "CANCELLED" %}
+                        <span class="badge bg-secondary">Cancelled</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted"><i class="bi bi-calendar"></i> No follow-ups scheduled.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="card">
+            <div class="card-header"><span><i class="bi bi-arrow-repeat me-2 text-gold"></i> Update Status</span></div>
+            <div class="card-body">
+                <form method="post" action="{% url 'leads:update_status' lead.id %}">
+                    {% csrf_token %}
+                    <div class="mb-2">{{ status_form.status }}</div>
+                    <div class="mb-2">{{ status_form.notes }}</div>
+                    <button type="submit" class="btn btn-gold btn-sm w-100"><i class="bi bi-check-circle"></i> Update</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="bi bi-person-check me-2 text-gold"></i> Assignment</span></div>
+            <div class="card-body">
+                {% if lead.assigned_to %}
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="user-avatar" style="width:32px;height:32px;font-size:0.7rem;">{{ lead.assigned_to.get_full_name|default:lead.assigned_to.username|make_list|first|upper }}</div>
+                    <div>
+                        <div class="fw-medium">{{ lead.assigned_to.get_full_name|default:lead.assigned_to.username }}</div>
+                        <small class="text-muted">Assigned {{ lead.assigned_at|timesince }} ago</small>
+                    </div>
+                </div>
+                {% with last_active=assignments|first %}
+                {% if last_active %}
+                <small class="d-block text-muted mb-1">
+                    <i class="bi bi-tag"></i> {{ last_active.get_assignment_type_display }}
+                </small>
+                {% endif %}
+                {% endwith %}
+                {% else %}
+                <p class="text-muted small mb-2">Not assigned</p>
+                {% endif %}
+                {% if user_role_code == "SUPER_ADMIN" or user_role_code == "TEAM_LEAD" %}
+                <hr>
+                <form method="post" action="{% url 'leads:assign' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="leads" value="{{ lead.id }}">
+                    <div class="mb-2">{{ bulk_form.assign_to }}</div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-person-plus"></i> Assign</button>
+                </form>
+                <hr>
+                <form method="post" action="{% url 'leads:reassign' pk=lead.id %}">
+                    {% csrf_token %}
+                    <div class="mb-2">{{ reassign_form.assign_to }}</div>
+                    <div class="mb-2">{{ reassign_form.reason }}</div>
+                    <button type="submit" class="btn btn-warning btn-sm w-100"><i class="bi bi-arrow-left-right"></i> Reassign</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-telephone me-2 text-gold"></i> Calls</span>
+                <button class="btn btn-sm btn-outline-gold" data-bs-toggle="collapse" data-bs-target="#addCallForm"><i class="bi bi-plus"></i> Log Call</button>
+            </div>
+            <div class="collapse" id="addCallForm">
+                <div class="card-body border-bottom bg-light">
+                    <form method="post" action="{% url 'leads:add_call' lead.id %}">
+                        {% csrf_token %}
+                        <div class="row g-2">
+                            <div class="col-6">{{ call_form.call_type }}</div>
+                            <div class="col-6">{{ call_form.call_status }}</div>
+                            <div class="col-6">{{ call_form.call_time }}</div>
+                            <div class="col-6">{{ call_form.duration_seconds }}</div>
+                            <div class="col-12">{{ call_form.notes }}</div>
+                            <div class="col-12">{{ call_form.recording_url }}</div>
+                            <div class="col-12"><button type="submit" class="btn btn-gold btn-sm w-100"><i class="bi bi-check"></i> Log Call</button></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% for call in calls|slice:":5" %}
+                <div class="border-bottom px-3 py-2">
+                    <div class="d-flex justify-content-between">
+                        <span>
+                            <span class="badge {% if call.call_type == 'INBOUND' %}bg-info{% else %}bg-success{% endif %} me-1">{{ call.get_call_type_display }}</span>
+                            <span class="fw-small">{{ call.duration_seconds }}s</span>
+                        </span>
+                        <small class="text-muted">{{ call.call_time|timesince }} ago</small>
+                    </div>
+                    <small class="text-muted">{{ call.call_status }}</small>
+                    {% if call.notes %}<div class="small text-muted mt-1">{{ call.notes|truncatewords:20 }}</div>{% endif %}
+                </div>
+                {% empty %}
+                <div class="text-center py-3 text-muted small">No calls logged.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clock-history me-2 text-gold"></i> Timeline</span>
+                <a href="{% url 'leads:timeline' lead.id %}" class="btn btn-sm btn-outline-gold py-0 px-1"><i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+            <div class="card-body p-0 timeline-vertical">
+                {% for event in timeline|slice:":10" %}
+                <div class="timeline-item px-3 py-2 border-bottom">
+                    <div class="d-flex align-items-start gap-2">
+                        <div class="timeline-dot bg-{{ event.color }} mt-1 flex-shrink-0" style="width:8px;height:8px;border-radius:50%;"></div>
+                        <div class="flex-grow-1 min-width-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <span class="fw-small">{{ event.title|truncatechars:40 }}</span>
+                                <small class="text-muted flex-shrink-0 ms-1">{{ event.timestamp|timesince }} ago</small>
+                            </div>
+                            <div class="small">
+                                {% if event.user %}
+                                <span class="text-muted me-1">{{ event.user.get_full_name|default:event.user.username }}</span>
+                                {% endif %}
+                                {% if event.description %}
+                                <span class="text-muted d-block text-truncate">{{ event.description|truncatechars:60 }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-3 text-muted small">No activity recorded yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span><i class="bi bi-info-circle me-2 text-gold"></i> Metadata</span></div>
+            <div class="card-body small">
+                <div class="mb-1"><span class="text-muted">Created:</span> {{ lead.created_at|date:"d M Y, h:i A" }}</div>
+                <div class="mb-1"><span class="text-muted">Updated:</span> {{ lead.updated_at|date:"d M Y, h:i A" }}</div>
+                {% if lead.is_duplicate %}<div class="text-warning"><i class="bi bi-exclamation-triangle"></i> Duplicate lead</div>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

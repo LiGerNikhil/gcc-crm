@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Assignment Rule - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'leads:list' %}">Leads</a></li>
+<li class="breadcrumb-item"><a href="{% url 'leads:assignment_rules' %}">Rules</a></li>
+<li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}Create{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>{% if form.instance.pk %}Edit{% else %}Create{% endif %} Assignment Rule</h2>
+        <p class="page-subtitle">Configure round-robin distribution settings.</p>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-gear me-2 text-primary"></i> Rule Settings</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">{{ form.name.label }}</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">{{ form.campaign.label }}</label>
+                            {{ form.campaign }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">{{ form.max_active_leads.label }}</label>
+                            {{ form.max_active_leads }}
+                            <div class="form-text">Maximum active leads a caller can have at once.</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.is_active }}
+                            <label class="form-check-label fw-medium">{{ form.is_active.label }}</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-people me-2 text-primary"></i> Callers</div>
+                <div class="card-body">
+                    <p class="small text-muted">Select callers to include in the round-robin rotation. Use Ctrl/Cmd+click to select/deselect.</p>
+                    {{ form.callers }}
+                    {% if form.callers.errors %}<div class="text-danger small">{{ form.callers.errors }}</div>{% endif %}
+                    <p class="small text-muted mt-2">Only active CALLER role users are shown.</p>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-gold flex-fill">
+                    <i class="bi bi-check-lg"></i> {% if form.instance.pk %}Update{% else %}Create{% endif %} Rule
+                </button>
+                <a href="{% url 'leads:assignment_rules' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

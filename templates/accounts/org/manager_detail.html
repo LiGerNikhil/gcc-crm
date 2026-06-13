@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ manager.user.get_full_name|default:manager.user.username }} - Manager{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'org:org_tree' %}">Organization</a></li>
+<li class="breadcrumb-item active">{{ manager.user.get_full_name|default:manager.user.username }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2><i class="bi bi-person-badge text-gold me-2"></i> {{ manager.user.get_full_name|default:manager.user.username }}</h2>
+        <p class="page-subtitle">{{ manager.department|default:"No Department" }} — Manager</p>
+    </div>
+    <div>
+        <a href="{% url 'org:teamlead_create' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-person-plus"></i> Add Team Lead</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Team Leads</div>
+            <div class="stat-value">{{ team_leads|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">AROs</div>
+            <div class="stat-value">{{ aros|length }}</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-label">Email / Phone</div>
+            <div class="stat-value" style="font-size:1rem;">{{ manager.user.email }} / {{ manager.phone|default:"—" }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <span><i class="bi bi-diagram-2 me-2 text-gold"></i> Team Leads under {{ manager.user.get_full_name|default:manager.user.username }}</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead>
+                <tr><th>Name</th><th>Email</th><th>Department</th><th>AROs</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for tl in team_leads %}
+                <tr>
+                    <td><a href="{% url 'org:teamlead_detail' tl.pk %}" class="text-decoration-none fw-medium">{{ tl.user.get_full_name|default:tl.user.username }}</a></td>
+                    <td>{{ tl.user.email }}</td>
+                    <td>{{ tl.department|default:"—" }}</td>
+                    <td><span class="badge bg-info">{{ tl.aro_count }}</span></td>
+                    <td class="text-end">
+                        <a href="{% url 'org:teamlead_edit' tl.pk %}" class="btn btn-sm btn-outline-gold"><i class="bi bi-pencil"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">No team leads assigned yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Upload Images - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'documents:batch_list' %}">Upload Batches</a></li>
+<li class="breadcrumb-item active">Upload Images</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>Image Upload</h2>
+        <p class="page-subtitle">Upload one or more images. Each image becomes a work item.</p>
+    </div>
+    <div>
+        <a href="{% url 'documents:batch_list' %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-clock-history"></i> Upload History</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-file-earmark-image me-2 text-primary"></i> Upload Images</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="upload-zone mb-4" id="imageUploadZone" onclick="document.getElementById('fileInput').click()">
+                        <div class="upload-icon"><i class="bi bi-images"></i></div>
+                        <h6 id="uploadText">Drop images here or click to browse</h6>
+                        <p id="fileCount">Supports JPG, PNG, GIF, BMP, TIFF, WebP &mdash; up to 50MB each</p>
+                        <input type="file" name="files" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.tiff,.tif,.webp" multiple hidden required>
+                        {% if form.files.errors %}<div class="text-danger small mt-2">{{ form.files.errors }}</div>{% endif %}
+                    </div>
+
+                    <div id="filePreview" class="row g-2 mb-3"></div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label">{{ form.notes.label }}</label>
+                            {{ form.notes }}
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span style="font-size:0.8rem;color:var(--crm-text-muted);">
+                            <i class="bi bi-info-circle me-1"></i> Each image becomes a separate work item with preview
+                        </span>
+                        <button type="submit" class="btn btn-gold" id="uploadBtn">
+                            <i class="bi bi-cloud-upload"></i> Upload & Process
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-info-circle me-2"></i> How It Works</div>
+            <div class="card-body" style="font-size:0.85rem;">
+                <ol class="mb-0" style="padding-left:1rem;">
+                    <li class="mb-2">Select one or more image files</li>
+                    <li class="mb-2">Each image becomes a work item</li>
+                    <li class="mb-2">Previews and thumbnails auto-generated</li>
+                    <li class="mb-2">Assign work items to team members</li>
+                    <li>Zoom, rotate, and view in fullscreen</li>
+                </ol>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><i class="bi bi-shield-check me-2 text-success"></i> Supported Formats</div>
+            <div class="card-body" style="font-size:0.8rem;">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>JPEG / JPG</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>PNG</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>GIF, BMP, TIFF</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span>WebP</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var fileInput = document.getElementById('fileInput');
+    var uploadText = document.getElementById('uploadText');
+    var fileCount = document.getElementById('fileCount');
+    var uploadZone = document.getElementById('imageUploadZone');
+    var filePreview = document.getElementById('filePreview');
+
+    function updatePreview(files) {
+        filePreview.innerHTML = '';
+        if (files.length === 0) {
+            uploadText.innerHTML = 'Drop images here or click to browse';
+            fileCount.textContent = 'Supports JPG, PNG, GIF, BMP, TIFF, WebP \u2014 up to 50MB each';
+            return;
+        }
+        uploadText.innerHTML = '<i class="bi bi-check-circle text-success"></i> ' + files.length + ' file(s) selected';
+        fileCount.textContent = files.length + ' image(s) will be uploaded';
+        for (var i = 0; i < Math.min(files.length, 6); i++) {
+            var col = document.createElement('div');
+            col.className = 'col-4 col-md-2';
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                col.innerHTML = '<div class="border rounded p-1 text-center" style="height:80px;overflow:hidden;">' +
+                    '<img src="' + e.target.result + '" style="height:100%;width:100%;object-fit:cover;">' +
+                    '</div>';
+            };
+            reader.readAsDataURL(files[i]);
+            filePreview.appendChild(col);
+        }
+    }
+
+    fileInput.addEventListener('change', function() {
+        updatePreview(fileInput.files);
+    });
+
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+    uploadZone.addEventListener('dragleave', function() {
+        uploadZone.classList.remove('dragover');
+    });
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            updatePreview(e.dataTransfer.files);
+        }
+    });
+});
+</script>
+{% endblock %}

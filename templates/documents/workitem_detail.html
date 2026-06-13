@@ -1,0 +1,497 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Work Item {{ work_item.item_identifier }} - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item"><a href="{% url 'documents:batch_list' %}">Upload Batches</a></li>
+<li class="breadcrumb-item"><a href="{% url 'documents:batch_detail' work_item.batch.id %}">{{ work_item.batch.batch_code }}</a></li>
+<li class="breadcrumb-item active">{{ work_item.item_identifier|default:"Work Item" }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>{{ work_item.batch.batch_code }} / {{ work_item.item_identifier|default:"Item" }}</h2>
+        <p class="page-subtitle">{{ work_item.batch.bank_source.name|default:"Uncategorized" }} &middot; {{ work_item.batch.get_upload_type_display }}</p>
+    </div>
+    <div>
+        <a href="{% url 'documents:batch_detail' work_item.batch.id %}" class="btn btn-outline-gold btn-sm"><i class="bi bi-arrow-left"></i> Back to Batch</a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Preview / Viewer -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-eye me-2"></i>
+                    {% if is_image %}Image Preview{% else %}Page Preview{% endif %}
+                </span>
+                <div class="d-flex align-items-center gap-2">
+                    {% if work_item.page_number %}
+                    <span class="badge bg-dark">Page {{ work_item.page_number }}</span>
+                    {% endif %}
+                    {% if is_image %}
+                    <span class="badge bg-dark">{{ work_item.item_identifier|truncatechars:20 }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if is_image and image_preview_url %}
+            <!-- Image Viewer with controls -->
+            <div class="card-body p-0 bg-dark text-center" style="min-height:400px;position:relative;overflow:hidden;">
+                <div id="imageViewer" style="width:100%;min-height:400px;display:flex;align-items:center;justify-content:center;">
+                    <img id="viewerImage" src="{{ image_preview_url }}" alt="Image Preview"
+                         style="max-width:100%;max-height:80vh;cursor:grab;transition:transform .2s;transform:scale(var(--zoom,1)) rotate(var(--rotate,0deg));">
+                </div>
+                <div class="viewer-toolbar">
+                    <button class="btn btn-sm btn-dark" onclick="zoomIn()" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
+                    <button class="btn btn-sm btn-dark" onclick="zoomOut()" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
+                    <button class="btn btn-sm btn-dark" onclick="resetView()" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    <button class="btn btn-sm btn-dark" onclick="rotateLeft()" title="Rotate Left"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    <button class="btn btn-sm btn-dark" onclick="rotateRight()" title="Rotate Right"><i class="bi bi-arrow-clockwise"></i></button>
+                    <button class="btn btn-sm btn-dark" onclick="toggleFullscreen()" title="Fullscreen"><i class="bi bi-fullscreen"></i></button>
+                    <a href="{% url 'documents:image_download' work_item.id %}" class="btn btn-sm btn-dark" title="Download Original"><i class="bi bi-download"></i></a>
+                </div>
+            </div>
+
+            {% elif page_preview_url %}
+            <!-- PDF Page Preview (static) -->
+            <div class="card-body text-center p-0 bg-dark" style="min-height:400px;">
+                <img src="{{ page_preview_url }}" alt="Page Preview" class="img-fluid" style="max-height:80vh;">
+            </div>
+
+            {% elif is_excel and extracted_fields %}
+            <!-- Excel Data Table -->
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height:80vh;overflow-y:auto;">
+                    <table class="table table-sm table-bordered mb-0" style="background:#fff;">
+                        <thead class="position-sticky top-0" style="z-index:1;">
+                            <tr>
+                                <th style="width:30%;background:var(--crm-gold, #c8a45c);color:#fff;">Field</th>
+                                <th style="background:var(--crm-gold, #c8a45c);color:#fff;">Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for field in extracted_fields %}
+                            <tr>
+                                <td class="fw-medium" style="font-size:0.8rem;color:#555;background:#f8f6f0;">{{ field.label }}</td>
+                                <td style="font-size:0.85rem;background:#fff;">{% if field.value is not None %}{{ field.value }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% elif work_item.extracted_data %}
+            <!-- Extracted Data Display (fallback) -->
+            <div class="card-body p-0 bg-dark" style="min-height:400px;overflow:auto;">
+                <pre class="text-light p-3 mb-0" style="white-space:pre-wrap;word-break:break-word;font-size:0.8rem;">{{ work_item.extracted_data }}</pre>
+            </div>
+
+            {% else %}
+            <div class="card-body text-center p-0 bg-dark d-flex align-items-center justify-content-center text-muted" style="min-height:400px;">
+                <i class="bi bi-image" style="font-size:3rem;"></i>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Details & Actions -->
+    <div class="col-lg-5">
+        <!-- Status Badge -->
+        <div class="card mb-3">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small d-block">Current Status</span>
+                    {% if work_item.status == "NEW" %}
+                    <span class="badge-status pending" style="font-size:0.9rem;">New</span>
+                    {% elif work_item.status == "ASSIGNED" %}
+                    <span class="badge-status" style="font-size:0.9rem;background:#0d6efd;color:#fff;">Assigned</span>
+                    {% elif work_item.status == "IN_PROGRESS" %}
+                    <span class="badge-status processing" style="font-size:0.9rem;">In Progress</span>
+                    {% elif work_item.status == "PENDING" %}
+                    <span class="badge-status" style="font-size:0.9rem;background:#6f42c1;color:#fff;">Pending</span>
+                    {% elif work_item.status == "NEED_CLARIFICATION" %}
+                    <span class="badge-status" style="font-size:0.9rem;background:#fd7e14;color:#fff;">Need Clarification</span>
+                    {% elif work_item.status == "COMPLETED" %}
+                    <span class="badge-status completed" style="font-size:0.9rem;">Completed</span>
+                    {% elif work_item.status == "REJECTED" %}
+                    <span class="badge-status failed" style="font-size:0.9rem;">Rejected</span>
+                    {% elif work_item.status == "CLOSED" %}
+                    <span class="badge-status" style="font-size:0.9rem;background:#212529;color:#fff;">Closed</span>
+                    {% else %}
+                    <span class="badge-status" style="font-size:0.9rem;background:#6c757d;color:#fff;">{{ work_item.get_status_display }}</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="text-muted small d-block">Priority</span>
+                    {% if work_item.priority == "HIGH" %}
+                    <span class="badge bg-danger">{{ work_item.get_priority_display }}</span>
+                    {% elif work_item.priority == "MEDIUM" %}
+                    <span class="badge bg-warning text-dark">{{ work_item.get_priority_display }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ work_item.get_priority_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Assignment Info -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-person me-2"></i> Assignment</div>
+            <div class="card-body">
+                {% if work_item.assigned_to %}
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-person-check text-success"></i>
+                    <span>{{ work_item.assigned_to.get_full_name|default:work_item.assigned_to.username }}</span>
+                </div>
+                {% if work_item.assigned_at %}
+                <small class="text-muted">Assigned {{ work_item.assigned_at|date:"d M Y H:i" }}</small>
+                {% endif %}
+                {% else %}
+                <p class="text-muted mb-2">Not assigned yet.</p>
+                {% endif %}
+
+                {% if user.profile.role.role_code in "MANAGER,TEAM_LEAD,SUPER_ADMIN" %}
+                <button class="btn btn-gold btn-sm w-100 mt-2" data-bs-toggle="collapse" data-bs-target="#assignForm">
+                    <i class="bi bi-send"></i> Assign / Reassign
+                </button>
+                <div class="collapse mt-2" id="assignForm">
+                    <form method="post" action="{% url 'documents:workitem_assign' work_item.id %}">
+                        {% csrf_token %}
+                        <div class="mb-2">{{ assign_form.assigned_to }}</div>
+                        <div class="mb-2">{{ assign_form.notes }}</div>
+                        <button type="submit" class="btn btn-gold btn-sm w-100"><i class="bi bi-check"></i> Assign</button>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Assignment History -->
+                {% if assignment_history %}
+                <hr class="my-2">
+                <small class="text-muted fw-medium">Assignment History</small>
+                <div class="mt-1" style="max-height:200px;overflow-y:auto;">
+                    {% for a in assignment_history %}
+                    <div class="d-flex justify-content-between align-items-start py-1 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div>
+                            <small>{{ a.assigned_to.get_full_name|default:a.assigned_to.username }}</small>
+                            {% if a.assigned_by %}
+                            <br><small class="text-muted" style="font-size:0.7rem;">by {{ a.assigned_by.get_full_name|default:a.assigned_by.username }}</small>
+                            {% endif %}
+                            {% if a.notes %}
+                            <br><small class="text-muted" style="font-size:0.7rem;">{{ a.notes|truncatewords:12 }}</small>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted" style="font-size:0.65rem;white-space:nowrap;">
+                            {{ a.assigned_at|date:"d M H:i" }}
+                            {% if a.unassigned_at %}&rarr; {{ a.unassigned_at|date:"d M H:i" }}{% endif %}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Status Update (for assigned users) -->
+        {% if work_item.assigned_to == user or user.profile.role.role_code in "MANAGER,TEAM_LEAD,SUPER_ADMIN" %}
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-arrow-repeat me-2"></i> Update Status</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'documents:workitem_status' work_item.id %}">
+                    {% csrf_token %}
+                    <div class="mb-2">{{ status_form.new_status }}</div>
+                    <div class="mb-2">{{ status_form.notes }}</div>
+                    <button type="submit" class="btn btn-outline-gold btn-sm w-100"><i class="bi bi-check-circle"></i> Update</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Add Note / Feedback -->
+        <div class="card mb-3" id="addNoteSection">
+            <div class="card-header"><i class="bi bi-sticky me-2"></i> Add Note</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'documents:workitem_note_add' work_item.id %}">
+                    {% csrf_token %}
+                    <div class="mb-2">{{ note_form.content }}</div>
+                    {% if user.profile.role.role_code == "ARO" or user.profile.role.role_code == "CALLER" %}
+                    <div class="form-check mb-2">
+                        {{ note_form.is_feedback }}
+                        <label class="form-check-label small text-warning" for="{{ note_form.is_feedback.id_for_label }}">
+                            <i class="bi bi-megaphone"></i> {{ note_form.is_feedback.label }}
+                        </label>
+                    </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-outline-gold btn-sm w-100"><i class="bi bi-plus-circle"></i> Add Note</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Revert (Manager/Team Lead only) -->
+        {% if user.profile.role.role_code in "MANAGER,TEAM_LEAD,SUPER_ADMIN" and work_item.status != "REJECTED" and work_item.status != "CLOSED" %}
+        <div class="card mb-3 border-warning">
+            <div class="card-header text-warning"><i class="bi bi-arrow-counterclockwise me-2"></i> Revert / Reject</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'documents:workitem_revert' work_item.id %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-2">{{ revert_form.reason }}</div>
+                    <div class="mb-2">{{ revert_form.reason_details }}</div>
+                    <div class="mb-2">{{ revert_form.remarks }}</div>
+                    <div class="mb-2">{{ revert_form.attachment }}</div>
+                    <button type="submit" class="btn btn-warning btn-sm w-100" onclick="return confirm('Reject this work item?');">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reject
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Feedback (shown first, highlighted) -->
+        {% with work_item.notes.all as all_notes %}
+        {% with all_notes|dictsortreversed:"created_at" as notes_sorted %}
+        {% with notes_sorted|slice:":100" as display_notes %}
+        {% if display_notes %}
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between">
+                <span><i class="bi bi-chat-dots me-2"></i> Activity ({{ display_notes|length }})</span>
+            </div>
+            <div class="card-body p-0">
+                {% for note in display_notes %}
+                <div class="border-bottom p-3 {% if forloop.first %}border-top{% endif %} {% if note.is_feedback %}bg-warning-subtle{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <small class="fw-medium">
+                            {% if note.is_feedback %}<i class="bi bi-megaphone text-warning" title="Feedback"></i>{% endif %}
+                            {{ note.created_by.get_full_name|default:note.created_by.username }}
+                            {% if note.is_feedback %}<span class="badge bg-warning text-dark" style="font-size:0.55rem;">FEEDBACK</span>{% endif %}
+                        </small>
+                        <small class="text-muted">{{ note.created_at|date:"d M Y H:i" }}</small>
+                    </div>
+                    <p class="mb-0 small">{{ note.content|linebreaksbr }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% endwith %}
+        {% endwith %}
+
+        <!-- Revert History -->
+        {% with work_item.reverts.all as reverts %}
+        {% if reverts %}
+        <div class="card mb-3">
+            <div class="card-header text-warning"><i class="bi bi-arrow-counterclockwise me-2"></i> Revert History ({{ reverts|length }})</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Reason</th>
+                                <th>Remarks</th>
+                                <th>By</th>
+                                <th>Date</th>
+                                <th>Attachment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rv in reverts %}
+                            <tr>
+                                <td><small>{{ forloop.revcounter }}</small></td>
+                                <td><span class="badge bg-warning text-dark">{{ rv.get_reason_display }}</span></td>
+                                <td><small>{{ rv.remarks|default:"—"|linebreaksbr }}</small></td>
+                                <td><small>{{ rv.reverted_by.get_full_name|default:rv.reverted_by.username }}</small></td>
+                                <td><small class="text-muted">{{ rv.reverted_at|date:"d M Y H:i" }}</small></td>
+                                <td>
+                                    {% if rv.attachment %}
+                                    <a href="{% url 'documents:revert_attachment' rv.id %}" class="btn btn-sm btn-outline-secondary" title="Download attachment">
+                                        <i class="bi bi-paperclip"></i>
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endwith %}
+    </div>
+</div>
+
+<!-- Status History -->
+{% if status_history %}
+<div class="card mt-4">
+    <div class="card-header"><i class="bi bi-list-check me-2"></i> Status History</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-borderless mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>By</th>
+                        <th>When</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in status_history %}
+                    <tr>
+                        <td>{% if entry.from_status %}<span class="badge bg-secondary">{{ entry.from_status }}</span>{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                        <td><span class="badge bg-primary">{{ entry.status }}</span></td>
+                        <td><small>{{ entry.changed_by.get_full_name|default:entry.changed_by.username }}</small></td>
+                        <td><small class="text-muted">{{ entry.changed_at|date:"d M H:i" }}</small></td>
+                        <td><small class="text-muted">{{ entry.notes|default:"" }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Timeline -->
+<div class="card mt-4">
+    <div class="card-header"><i class="bi bi-clock-history me-2"></i> Activity Timeline</div>
+    <div class="card-body p-0">
+        {% if timeline %}
+        <div class="timeline">
+            {% for entry in timeline %}
+            <div class="timeline-item">
+                <div class="timeline-marker {% if entry.action == 'CREATED' %}bg-secondary{% elif entry.action == 'ASSIGNED' %}bg-primary{% elif entry.action == 'COMPLETED' %}bg-success{% elif entry.action == 'REVERTED' %}bg-warning{% elif entry.action == 'STATUS_CHANGED' %}bg-info{% elif entry.action == 'NOTE_ADDED' %}bg-secondary{% elif entry.action == 'FEEDBACK' %}bg-warning{% else %}bg-dark{% endif %}"></div>
+                <div class="timeline-content">
+                    <div class="d-flex justify-content-between">
+                        <span class="fw-medium small">{{ entry.get_action_display }}</span>
+                        <small class="text-muted">{{ entry.timestamp|date:"d M Y H:i" }}</small>
+                    </div>
+                    {% if entry.description %}
+                    <p class="mb-0 small">{{ entry.description }}</p>
+                    {% endif %}
+                    {% if entry.from_status and entry.to_status %}
+                    <small class="text-muted">{{ entry.from_status }} &rarr; {{ entry.to_status }}</small>
+                    {% endif %}
+                    <small class="text-muted d-block">
+                        {% if entry.performed_by %}{{ entry.performed_by.get_full_name|default:entry.performed_by.username }}{% endif %}
+                        {% if entry.is_system_generated %}<span class="badge bg-dark" style="font-size:0.55rem;">SYSTEM</span>{% endif %}
+                    </small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-4 mb-0">No activity recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.timeline {
+    position: relative;
+    padding: 1rem 0;
+}
+.timeline-item {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 1.5rem;
+    position: relative;
+}
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 25px;
+    top: 24px;
+    bottom: -8px;
+    width: 2px;
+    background: #2a2a3e;
+}
+.timeline-item:last-child::before {
+    display: none;
+}
+.timeline-marker {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+    z-index: 1;
+}
+.timeline-content {
+    flex: 1;
+    min-width: 0;
+}
+.viewer-toolbar {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 4px;
+    background: rgba(0,0,0,0.75);
+    padding: 4px 8px;
+    border-radius: 8px;
+    z-index: 10;
+}
+.viewer-toolbar .btn-dark {
+    border: 1px solid rgba(255,255,255,0.15);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var zoom = 1, rot = 0;
+    var img = document.getElementById('viewerImage');
+    if (!img) return;
+    var viewer = document.getElementById('imageViewer');
+    var root = document.documentElement;
+
+    window.zoomIn = function() {
+        zoom = Math.min(zoom + 0.25, 5);
+        root.style.setProperty('--zoom', zoom);
+    };
+    window.zoomOut = function() {
+        zoom = Math.max(zoom - 0.25, 0.25);
+        root.style.setProperty('--zoom', zoom);
+    };
+    window.resetView = function() {
+        zoom = 1; rot = 0;
+        root.style.setProperty('--zoom', 1);
+        root.style.setProperty('--rotate', '0deg');
+    };
+    window.rotateLeft = function() {
+        rot -= 90;
+        root.style.setProperty('--rotate', rot + 'deg');
+    };
+    window.rotateRight = function() {
+        rot += 90;
+        root.style.setProperty('--rotate', rot + 'deg');
+    };
+    window.toggleFullscreen = function() {
+        if (!document.fullscreenElement) {
+            viewer.requestFullscreen().catch(function(){});
+        } else {
+            document.exitFullscreen().catch(function(){});
+        }
+    };
+    // Mouse wheel zoom
+    viewer.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        if (e.deltaY < 0) zoomIn(); else zoomOut();
+    }, {passive: false});
+})();
+</script>
+{% endblock %}

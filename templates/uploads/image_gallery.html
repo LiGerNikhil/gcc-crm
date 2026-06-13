@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Image Gallery - GCC CRM{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'accounts:dashboard' %}"><i class="bi bi-house-door"></i></a></li>
+<li class="breadcrumb-item active">Image Gallery</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h2>Image Gallery</h2>
+        <p class="page-subtitle">Browse and manage uploaded images.</p>
+    </div>
+    <a href="{% url 'imager:upload' %}" class="btn btn-gold">
+        <i class="bi bi-cloud-upload"></i> Upload Images
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Search by filename, lead, type..." value="{{ search_query }}">
+            </div>
+            <div class="col-md-2">
+                <select name="image_type" class="form-select form-select-sm">
+                    <option value="">All Types</option>
+                    {% for code, label in image_types %}
+                    <option value="{{ code }}" {% if active_type == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="batch" class="form-select form-select-sm">
+                    <option value="">All Batches</option>
+                    {% for b in batches %}
+                    <option value="{{ b.id }}" {% if active_batch == b.id|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-search"></i> Filter</button>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'imager:gallery' %}" class="btn btn-sm btn-outline-secondary w-100"><i class="bi bi-x-circle"></i> Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    {% for image in images %}
+    <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+        <div class="card image-card h-100">
+            <a href="{% url 'imager:viewer' pk=image.id %}" class="image-thumb-link">
+                <div class="image-thumb">
+                    {% if image.thumbnail_path %}
+                    <img src="{{ MEDIA_URL }}{{ image.thumbnail_path }}" alt="{{ image.file_name }}" loading="lazy">
+                    {% else %}
+                    <img src="{{ MEDIA_URL }}{{ image.file_path }}" alt="{{ image.file_name }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">
+                    {% endif %}
+                </div>
+            </a>
+            <div class="card-body p-2">
+                <small class="d-block text-truncate fw-medium">{{ image.file_name }}</small>
+                <small class="text-muted d-block">
+                    {{ image.get_image_type_display|default:"Other" }}
+                    {% if image.file_size %} &middot; {{ image.file_size|filesizeformat }}{% endif %}
+                </small>
+                {% if image.lead %}
+                <a href="{% url 'leads:detail' pk=image.lead.id %}" class="small text-decoration-none">
+                    <i class="bi bi-person-badge"></i> {{ image.lead.customer_name|truncatechars:20 }}
+                </a>
+                {% else %}
+                <span class="small text-warning"><i class="bi bi-unlink"></i> Unassigned</span>
+                {% endif %}
+                <div class="mt-1">
+                    <a href="{% url 'imager:viewer' pk=image.id %}" class="btn btn-sm btn-outline-primary py-0 px-1" title="View">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{% url 'imager:download' pk=image.id %}" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Download">
+                        <i class="bi bi-download"></i>
+                    </a>
+                    {% if not image.lead %}
+                    <button type="button" class="btn btn-sm btn-outline-warning py-0 px-1 assign-single-btn"
+                            data-image-id="{{ image.id }}" data-image-name="{{ image.file_name }}"
+                            title="Assign to Lead">
+                        <i class="bi bi-link-45deg"></i>
+                    </button>
+                    {% endif %}
+                    <label class="btn btn-sm btn-outline-dark py-0 px-1 mb-0" title="Select for batch assign">
+                        <input type="checkbox" class="batch-select" value="{{ image.id }}" style="width:14px;height:14px;">
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="bi bi-image text-muted" style="font-size:3rem;"></i>
+            <p class="mt-2 text-muted">No images found.</p>
+            <a href="{% url 'imager:upload' %}" class="btn btn-gold"><i class="bi bi-cloud-upload"></i> Upload Images</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if is_paginated %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if active_type %}&image_type={{ active_type }}{% endif %}{% if active_batch %}&batch={{ active_batch }}{% endif %}">First</a></li>
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if active_type %}&image_type={{ active_type }}{% endif %}{% if active_batch %}&batch={{ active_batch }}{% endif %}">Prev</a></li>
+        {% endif %}
+        <li class="page-item active"><span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if active_type %}&image_type={{ active_type }}{% endif %}{% if active_batch %}&batch={{ active_batch }}{% endif %}">Next</a></li>
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if active_type %}&image_type={{ active_type }}{% endif %}{% if active_batch %}&batch={{ active_batch }}{% endif %}">Last</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<div class="card mt-3" id="batchAssignPanel" style="display:none;">
+    <div class="card-body">
+        <form method="post" action="{% url 'imager:batch_assign' pk='00000000-0000-0000-0000-000000000000' %}" id="batchAssignForm">
+            {% csrf_token %}
+            <div class="row align-items-center g-2">
+                <div class="col-auto">
+                    <strong><span id="selectedCount">0</span></strong> image(s) selected
+                </div>
+                <div class="col-md-4">
+                    <select name="lead_id" class="form-select form-select-sm" id="assignLeadSelect" required>
+                        <option value="">Select Lead...</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-sm btn-gold"><i class="bi bi-link-45deg"></i> Assign to Lead</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSelection"><i class="bi bi-x"></i> Clear</button>
+                </div>
+            </div>
+            <div id="selectedImageIds"></div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedImages = new Set();
+
+document.querySelectorAll('.batch-select').forEach(cb => {
+    cb.addEventListener('change', function() {
+        if (this.checked) selectedImages.add(this.value);
+        else selectedImages.delete(this.value);
+        updateBatchPanel();
+    });
+});
+
+document.getElementById('clearSelection').addEventListener('click', function() {
+    document.querySelectorAll('.batch-select').forEach(cb => { cb.checked = false; });
+    selectedImages.clear();
+    updateBatchPanel();
+});
+
+function updateBatchPanel() {
+    const panel = document.getElementById('batchAssignPanel');
+    const count = document.getElementById('selectedCount');
+    const container = document.getElementById('selectedImageIds');
+    const form = document.getElementById('batchAssignForm');
+    count.textContent = selectedImages.size;
+    container.innerHTML = '';
+    if (selectedImages.size === 0) {
+        panel.style.display = 'none';
+        return;
+    }
+    panel.style.display = 'block';
+    selectedImages.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'image_ids';
+        input.value = id;
+        container.appendChild(input);
+    });
+}
+
+document.querySelectorAll('.assign-single-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const leadId = prompt('Enter Lead ID (UUID) to assign this image:');
+        if (!leadId) return;
+        const imageId = this.dataset.imageId;
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = `/images/batch/${imageId}/assign/`.replace('/batch/', '/batch/');
+        form.innerHTML = `{% csrf_token %}<input type="hidden" name="image_ids" value="${imageId}"><input type="hidden" name="lead_id" value="${leadId}">`;
+        document.body.appendChild(form);
+        form.submit();
+    });
+});
+</script>
+{% endblock %}
